@@ -9,9 +9,27 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Space Grotesk', sans-serif; background-color: #f0f4f8; }
+        
+        /* Estilos Estritos do Design Brutalista */
         .brutal-border { border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
-        .brutal-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000000; }
-        .chat-container { height: calc(100vh - 180px); }
+        .brutal-btn { transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .brutal-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0px #000000; }
+        
+        /* Animação Avançada de Entrada de Mensagens */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-message { animation: fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* Pontinhos pulando (Indicador de Digitação) */
+        @keyframes dotPulse {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .typing-dot { animation: dotPulse 0.8s infinite ease-in-out; }
+        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
     </style>
 </head>
 <body class="p-4 md:p-6">
@@ -26,7 +44,7 @@
                     <div>
                         <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
                         <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SAFE
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
                         </span>
                     </div>
                 </div>
@@ -42,14 +60,14 @@
 
                     <div class="space-y-2">
                         <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Assistente</label>
-                        <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left">
+                        <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border">
                             <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-600"></i>
                             <div>
                                 <div class="text-xs font-bold">Tutor Escolar</div>
                                 <div class="text-[10px] text-slate-500">Respostas e auxílio didático</div>
                             </div>
                         </button>
-                        <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100">
+                        <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 transition-all">
                             <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
                             <div>
                                 <div class="text-xs font-bold">Contar Histórias</div>
@@ -70,10 +88,10 @@
                 <span id="chatModeTitle" class="text-[10px] font-black uppercase tracking-widest text-amber-400">MODO TUTOR ATIVO</span>
             </div>
 
-            <div id="chatBox" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
-                <div class="flex items-start gap-3">
+            <div id="chatBox" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50 scroll-smooth">
+                <div class="flex items-start gap-3 animate-message">
                     <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                    <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium">
+                    <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium shadow-[2px_2px_0px_#000]">
                         Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
                     </div>
                 </div>
@@ -82,18 +100,18 @@
             <div class="p-4 bg-white border-t-4 border-black">
                 <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-white brutal-border rounded-xl p-2 relative">
                     
-                    <label class="p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center justify-center transition-all">
-                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500"></i>
+                    <label class="p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center justify-center transition-all duration-300 active:scale-95">
+                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500 transition-transform duration-300"></i>
                         <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
                     </label>
 
                     <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 px-1 text-sm font-medium focus:outline-none" autocomplete="off">
                     
-                    <button type="submit" class="p-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn transition-all">
+                    <button type="submit" class="p-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn brutal-border border-none shadow-none">
                         <i data-lucide="send" class="w-4 h-4"></i>
                     </button>
                 </form>
-                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1 px-2 hidden"></div>
+                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1.5 px-2 hidden animate-pulse"></div>
             </div>
         </div>
 
@@ -110,13 +128,13 @@
             const title = document.getElementById("chatModeTitle");
 
             if(mode === "tutor") {
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left";
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100";
+                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border";
+                btnStory.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 transition-all";
                 title.innerText = "MODO TUTOR ATIVO";
                 title.className = "text-[10px] font-black uppercase tracking-widest text-amber-400";
             } else {
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-50 rounded-xl border-2 border-black text-left";
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100";
+                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border";
+                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 transition-all";
                 title.innerText = "MODO HISTÓRIA ATIVO";
                 title.className = "text-[10px] font-black uppercase tracking-widest text-purple-400";
             }
@@ -127,28 +145,27 @@
             const preview = document.getElementById("filePreview");
             const icon = document.getElementById("clipIcon");
             if (input.files.length > 0) {
-                preview.innerText = `📎 Arquivo pronto: ${input.files[0].name}`;
+                preview.innerText = `📎 Arquivo anexado com sucesso: ${input.files[0].name}`;
                 preview.classList.remove("hidden");
-                icon.classList.remove("text-slate-500");
-                icon.classList.add("text-emerald-600");
+                icon.classList.add("rotate-45", "text-emerald-600");
             } else {
                 preview.classList.add("hidden");
-                icon.classList.remove("text-emerald-600");
-                icon.classList.add("text-slate-500");
+                icon.classList.remove("rotate-45", "text-emerald-600");
             }
         }
 
         function appendMessage(role, text) {
+            removeTypingIndicator();
             const chatBox = document.getElementById("chatBox");
             const msgDiv = document.createElement("div");
-            msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : ''}`;
+            msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : ''} animate-message`;
 
-            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
-            const userTag = `<div class="text-[9px] font-black uppercase p-1 bg-slate-200 rounded-md border border-black">ME</div>`;
+            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000]"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
+            const userTag = `<div class="text-[9px] font-black uppercase p-1.5 bg-slate-200 rounded-md border border-black shadow-[1px_1px_0px_#000]">ME</div>`;
 
             msgDiv.innerHTML = `
                 ${role === 'model' ? botIcon : ''}
-                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium whitespace-pre-wrap">
+                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000]">
                     ${text}
                 </div>
                 ${role === 'user' ? userTag : ''}
@@ -158,13 +175,38 @@
             lucide.createIcons();
         }
 
+        function showTypingIndicator() {
+            removeTypingIndicator();
+            const chatBox = document.getElementById("chatBox");
+            const indicatorDiv = document.createElement("div");
+            indicatorDiv.id = "typingIndicator";
+            indicatorDiv.className = "flex items-start gap-3 animate-message";
+            indicatorDiv.innerHTML = `
+                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[2px_2px_0px_#000]">
+                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
+                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
+                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
+                </div>
+            `;
+            chatBox.appendChild(indicatorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lucide.createIcons();
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById("typingIndicator");
+            if (indicator) indicator.remove();
+        }
+
         function appendError(text) {
+            removeTypingIndicator();
             const chatBox = document.getElementById("chatBox");
             const errorDiv = document.createElement("div");
-            errorDiv.className = "flex items-start gap-3";
+            errorDiv.className = "flex items-start gap-3 animate-message";
             errorDiv.innerHTML = `
                 <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-rose-50 text-rose-700 p-3 rounded-2xl border-2 border-rose-400 max-w-[80%] text-sm font-bold">
+                <div class="bg-rose-50 text-rose-700 p-3 rounded-2xl border-2 border-rose-400 max-w-[80%] text-sm font-bold shadow-[2px_2px_0px_#000]">
                     ${text}
                 </div>
             `;
@@ -184,6 +226,7 @@
 
             appendMessage("user", message || "📁 Enviou um arquivo para análise.");
             msgInput.value = "";
+            showTypingIndicator();
 
             const formData = new FormData();
             formData.append("user_id", userId);
@@ -193,7 +236,6 @@
                 formData.append("file", fileInput.files[0]);
             }
 
-            // Reseta o input de arquivo visualmente
             fileInput.value = "";
             actualizarStatusArquivo();
 
@@ -201,18 +243,16 @@
                 const response = await fetch("/api/chat", { method: "POST", body: formData });
                 
                 if (response.status === 429) {
-                    appendError("Desculpe, o limite diário ou por minuto da minha inteligência artificial foi atingido. Por favor, aguarde de 1 a 2 minutos antes de tentar novamente.");
+                    appendError("Limite de cota atingido temporariamente. Aguarde 1-2 minutos.");
                     return;
                 }
 
-                if (!response.ok) {
-                    throw new Error();
-                }
+                if (!response.ok) throw new Error();
 
                 const data = await response.json();
                 appendMessage("model", data.response);
             } catch (err) {
-                appendError("Desculpe, ocorreu um erro interno ao tentar conectar com o servidor. Verifique sua conexão ou tente novamente.");
+                appendError("Ocorreu um erro de conexão com o servidor. Tente novamente.");
             }
         }
 
@@ -226,9 +266,9 @@
                 });
                 if (res.ok) {
                     document.getElementById("chatBox").innerHTML = `
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-3 animate-message">
                             <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                            <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium">Histórico apagado com sucesso! Como posso te ajudar agora?</div>
+                            <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium shadow-[2px_2px_0px_#000]">Histórico apagado com sucesso! Como posso ajudar?</div>
                         </div>
                     `;
                     lucide.createIcons();
