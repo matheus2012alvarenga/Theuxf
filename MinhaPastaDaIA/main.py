@@ -1,10 +1,15 @@
 import os
+import shutil
 import sqlite3
 import logging
+from typing import Optional
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
@@ -16,36 +21,18 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-app = FastAPI(
-    title="Guardião IA - Enterprise Backend",
-    description="Backend robusto com segurança de arquivos, tratamento de erros e gestão de contexto.",
-    version="2.0.0"
-)
-
-# Configuração Estrita de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 DB_FILE = "chat_ia.db"
 MODEL_NAME = "gemini-2.5-flash"
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB por imagem
-ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"]
+UPLOAD_DIR = "temp_uploads"
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    logger.critical("CRITICAL: A variável GEMINI_API_KEY não foi encontrada no ambiente!")
-    api_key = ""
+# Garante que o diretório temporário exista
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Inicializa o cliente oficial
-client = genai.Client(api_key=api_key)
-
-
+# -----------------------------------------------------------------------------
+# GERENCIAMENTO DE CICLO DE VIDA (LIFESPAN) & BANCO DE DADOS
+# -----------------------------------------------------------------------------
 def init_db():
+    """Cria a tabela e garante índices para buscas rápidas."""
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -59,9 +46,42 @@ def init_db():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_user_id ON historico(user_id)')
         conn.commit()
 
-init_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gerencia a inicialização e encerramento seguro do servidor."""
+    logger.info("Iniciando o servidor e verificando banco de dados...")
+    init_db()
+    yield
+    logger.info("Encerrando o servidor...")
 
+# Inicialização do FastAPI com Lifespan moderno
+app = FastAPI(
+    title="Guardião IA - Enterprise Backend",
+    description="Backend robusto com suporte multimodal total (Texto, Imagem, Vídeo, Áudio e Arquivos).",
+    version="3.0.0",
+    lifespan=lifespan
+)
 
+# Configuração Estrita de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    logger.critical("CRITICAL: A variável GEMINI_API_KEY não foi encontrada no ambiente!")
+    api_key = ""
+
+# Inicializa o cliente oficial do Gemini
+client = genai.Client(api_key=api_key)
+
+# -----------------------------------------------------------------------------
+# FUNÇÕES AUXILIARES DO BANCO DE DADOS
+# -----------------------------------------------------------------------------
 def salvar_mensagem_no_banco(user_id: str, role: str, text: str):
     try:
         with sqlite3.connect(DB_FILE) as conn:
@@ -71,8 +91,8 @@ def salvar_mensagem_no_banco(user_id: str, role: str, text: str):
     except sqlite3.Error as e:
         logger.error(f"Erro ao salvar no banco de dados: {str(e)}")
 
-
 def recuperar_historico_do_banco(user_id: str) -> list:
+    """Recupera as últimas interações mantendo a estrutura oficial do SDK."""
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
@@ -98,17 +118,18 @@ def recuperar_historico_do_banco(user_id: str) -> list:
         logger.error(f"Erro ao ler do banco de dados: {str(e)}")
         return []
 
-
 class ClearRequest(BaseModel):
     user_id: str
 
-
+# -----------------------------------------------------------------------------
+# ROTA PRINCIPAL DO CHAT (SUPORTE A TEXTO E MULTIMÍDIA)
+# -----------------------------------------------------------------------------
 @app.post("/api/chat")
 async def chat_endpoint(
     user_id: str = Form(...),
     message: str = Form(...),
     mode: str = Form("tutor"),
-    file: UploadFile = File(None)
+    file: Optional[UploadFile] = File(None)
 ):
     if not api_key:
         raise HTTPException(
@@ -122,9 +143,11 @@ async def chat_endpoint(
             detail="Desculpe, ocorreu um erro: O ID do usuário e a mensagem não podem estar vazios."
         )
     
+    # Busca o histórico prévio e salva a nova entrada do usuário
     historico_previo = recuperar_historico_do_banco(user_id)
     salvar_mensagem_no_banco(user_id, "user", message)
     
+    # Definição das diretrizes de comportamento da IA
     if mode == "story":
         system_prompt = (
             "Você é um Contador de Histórias mágico e lúdico para crianças.\n"
@@ -133,54 +156,50 @@ async def chat_endpoint(
         )
     else:
         system_prompt = (
-            "Você é um Tutor de IA super didático para estudantes menores de idade.\n"
-            "Use títulos em Markdown (###) para separar os passos da explicação. "
-            "Use listas (* ou 1.) para detalhar resoluções. Nunca dê a resposta de bandeja! "
-            "Termine sempre fazendo uma pergunta reflexiva para testar o aprendizado do aluno."
+            "Você é um Tutor de IA super didático e inteligente.\n"
+            "DIRETRIZ DE RESPOSTA FATO/RESULTADO: Se o usuário pedir um dado direto, uma curiosidade, "
+            "uma informação factual do mundo real ou o resultado de uma busca, ENTREGUE O RESULTADO IMEDIATAMENTE e de forma direta.\n"
+            "DIRETRIZ DE RESOLUÇÃO DE EXERCÍCIOS: Apenas quando o aluno enviar problemas escolares, equações ou tarefas "
+            "para resolver, aja de forma guiada passo a passo usando títulos (###) e listas (* ou 1.) sem dar a resposta de bandeja de início."
         )
 
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
-        temperature=0.6,
-        safety_settings=[
-            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
-            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
-            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
-            types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
-        ]
+        temperature=0.7,
     )
 
+    local_file_path = None
+    uploaded_gemini_file = None
+
     try:
+        # Inicializa a lista de partes do bloco de conteúdo atual do usuário
+        user_parts = []
+
+        # Se houver um arquivo (Imagem, Vídeo, Áudio, PDF, etc.)
         if file and file.filename:
-            if file.content_type not in ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                    detail="Desculpe, formato inválido. Envie apenas imagens JPG, PNG ou WEBP."
-                )
-
-            file_bytes = await file.read()
+            local_file_path = os.path.join(UPLOAD_DIR, file.filename)
             
-            if len(file_bytes) > MAX_FILE_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                    detail="A imagem enviada é muito pesada! Escolha uma foto de até 5MB."
-                )
-                
-            if not file_bytes:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, 
-                    detail="Desculpe, o arquivo enviado está vazio ou corrompido."
-                )
-
-            image_part = types.Part.from_bytes(data=file_bytes, mime_type=file.content_type)
-            text_part = types.Part.from_text(text=message)
+            # Salva o arquivo temporariamente no servidor local
+            with open(local_file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
             
-            conteudo_atual = types.Content(role="user", parts=[image_part, text_part])
-            payload_contents = historico_previo + [conteudo_atual]
-        else:
-            conteudo_atual = types.Content(role="user", parts=[types.Part.from_text(text=message)])
-            payload_contents = historico_previo + [conteudo_atual]
+            logger.info(f"Arquivo recebido e salvo localmente: {local_file_path}")
+
+            # Envia o arquivo para a API de Arquivos do Gemini (Suporta mídias grandes como vídeos)
+            logger.info("Enviando arquivo para a infraestrutura do Gemini...")
+            uploaded_gemini_file = client.files.upload(file=local_file_path)
+            logger.info(f"Arquivo carregado com sucesso no Gemini. URI: {uploaded_gemini_file.uri}")
+            
+            # Adiciona o objeto do arquivo nas partes que serão processadas
+            user_parts.append(uploaded_gemini_file)
+
+        # Adiciona a mensagem de texto do usuário
+        user_parts.append(types.Part.from_text(text=message))
         
+        conteudo_atual = types.Content(role="user", parts=user_parts)
+        payload_contents = historico_previo + [conteudo_atual]
+        
+        # Envia todo o contexto montado para o modelo
         response = client.models.generate_content(
             model=MODEL_NAME,
             contents=payload_contents,
@@ -196,18 +215,26 @@ async def chat_endpoint(
         logger.error(f"Erro nativo da API do Gemini: {str(api_err)}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="A IA está processando muitas requisições no momento. Aguarde um minutinho e envie de novo!"
+            detail="A IA está processando muitas requisições ou o arquivo enviado é incompatível. Tente novamente."
         )
-    except HTTPException as http_err:
-        raise http_err
     except Exception as e:
         logger.error(f"Erro inesperado no servidor: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Desculpe, ocorreu um erro interno ao processar sua mensagem. Tente novamente."
+            detail="Desculpe, ocorreu um erro interno ao processar sua mensagem."
         )
+    finally:
+        # Limpeza absoluta de espaço em disco no servidor local após o processamento
+        if local_file_path and os.path.exists(local_file_path):
+            try:
+                os.remove(local_file_path)
+                logger.info(f"Espaço limpo: Arquivo temporário {local_file_path} removido.")
+            except Exception as clean_err:
+                logger.error(f"Falha ao apagar arquivo temporário: {str(clean_err)}")
 
-
+# -----------------------------------------------------------------------------
+# OUTRAS ROTAS DO SISTEMA
+# -----------------------------------------------------------------------------
 @app.post("/api/clear")
 async def clear_chat(request: ClearRequest):
     try:
@@ -223,11 +250,9 @@ async def clear_chat(request: ClearRequest):
             detail="Desculpe, falha ao tentar limpar sua conversa no banco de dados."
         )
 
-
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
-
 
 if __name__ == "__main__":
     import uvicorn
