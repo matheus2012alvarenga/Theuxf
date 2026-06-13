@@ -222,10 +222,9 @@
         lucide.createIcons();
 
         let currentMode = "tutor";
-        // CONFIGURADO PARA O SEU SERVIDOR NA RENDER:
-        const API_URL = "https://theuxf.onrender.com";
+        // Ajustado para usar caminhos relativos ao próprio servidor do Render
+        const API_URL = window.location.origin;
 
-        // CONFIGURAÇÃO DO SINTETIZADOR DE SOM RETRO (Web Audio API)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playRetroSound(type) {
@@ -252,9 +251,7 @@
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.15);
                 }
-            } catch (e) {
-                // Bloqueio preventivo do navegador
-            }
+            } catch (e) {}
         }
 
         function setMode(mode) {
