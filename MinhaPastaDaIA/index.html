@@ -222,7 +222,8 @@
         lucide.createIcons();
 
         let currentMode = "tutor";
-        const API_URL = "http://localhost:8000";
+        // CONFIGURADO PARA O SEU SERVIDOR NA RENDER:
+        const API_URL = "https://theuxf.onrender.com";
 
         // CONFIGURAÇÃO DO SINTETIZADOR DE SOM RETRO (Web Audio API)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -235,7 +236,6 @@
                 gain.connect(audioCtx.destination);
 
                 if (type === 'send') {
-                    // Som agudo rápido de clique/envio
                     osc.type = 'square';
                     osc.frequency.setValueAtTime(400, audioCtx.currentTime);
                     osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.08);
@@ -244,7 +244,6 @@
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.08);
                 } else if (type === 'receive') {
-                    // Som duplo clássico de resposta recebida ("bip-bop")
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(600, audioCtx.currentTime);
                     osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.06);
@@ -254,7 +253,7 @@
                     osc.stop(audioCtx.currentTime + 0.15);
                 }
             } catch (e) {
-                // Navegador bloqueou áudio antes da primeira interação
+                // Bloqueio preventivo do navegador
             }
         }
 
@@ -302,7 +301,6 @@
             }, 200);
         }
 
-        // FUNÇÃO DE RENDERIZAR MENSAGENS ATUALIZADA COM SUPORTE A MARKDOWN (Item 1)
         function appendMessage(sender, text) {
             const container = document.getElementById("messageContainer");
             const containerDiv = document.createElement("div");
@@ -318,7 +316,6 @@
                 `;
             } else {
                 const isError = text.includes("Desculpe, ocorreu um erro");
-                // Se não for erro, processa o texto através do conversor de Markdown
                 const contentHtml = isError ? text : marked.parse(text);
                 
                 containerDiv.innerHTML = `
@@ -371,7 +368,6 @@
 
             if (!text) return;
 
-            // Toca som de envio
             playRetroSound('send');
             appendMessage("user", text);
             messageInput.value = "";
