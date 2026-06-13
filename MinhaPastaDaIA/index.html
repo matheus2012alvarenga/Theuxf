@@ -5,420 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guardião IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
     <style>
-        /* Estilo Base Retro */
-        .retro-pattern {
-            background-color: #F8F7F4;
-            background-image: radial-gradient(rgba(30, 41, 59, 0.12) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-        .brutal-border {
-            border: 2px solid #1E293B;
-        }
-        
-        /* Sistema de Sombras Brutalistas Reativas */
-        .brutal-shadow {
-            box-shadow: 5px 5px 0px 0px #1E293B;
-            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.15), box-shadow 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.15);
-        }
-        .brutal-shadow:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: 7px 7px 0px 0px #1E293B;
-        }
-        .brutal-shadow:active {
-            transform: translate(5px, 5px);
-            box-shadow: 0px 0px 0px 0px #1E293B;
-        }
-
-        .brutal-shadow-sm {
-            box-shadow: 3px 3px 0px 0px #1E293B;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .brutal-shadow-sm:hover {
-            transform: translate(-1px, -1px);
-            box-shadow: 4px 4px 0px 0px #1E293B;
-        }
-        .brutal-shadow-sm:active {
-            transform: translate(3px, 3px);
-            box-shadow: 0px 0px 0px 0px #1E293B;
-        }
-
-        .system-error-bubble {
-            background-color: #fef2f2 !important;
-            border: 2px solid #ef4444 !important;
-            color: #991b1b !important;
-            box-shadow: 3px 3px 0px 0px #1E293B !important;
-        }
-
-        /* Estilização interna do Markdown para as respostas da IA */
-        .prose-brutal p { margin-bottom: 0.75rem; }
-        .prose-brutal p:last-child { margin-bottom: 0; }
-        .prose-brutal ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.75rem; }
-        .prose-brutal ol { list-style-type: decimal; margin-left: 1.25rem; margin-bottom: 0.75rem; }
-        .prose-brutal strong { font-weight: 800; color: #000; }
-        .prose-brutal code { background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.85em; border: 1px solid #cbd5e1; }
-
-        /* ANIMAÇÕES */
-        @keyframes messagePopIn {
-            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-message {
-            animation: messagePopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.12) forwards;
-        }
-
-        @keyframes dotBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-        }
-        .animate-dot-1 { animation: dotBounce 0.6s infinite 0s ease-in-out; }
-        .animate-dot-2 { animation: dotBounce 0.6s infinite 0.15s ease-in-out; }
-        .animate-dot-3 { animation: dotBounce 0.6s infinite 0.3s ease-in-out; }
-
-        /* Animação de Rotação Lenta para o Selo */
-        @keyframes slowSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-slow-spin {
-            animation: slowSpin 12s linear infinite;
-        }
-
-        /* Customização da barra de rolagem */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #F8F7F4; border-left: 2px solid #1E293B; }
-        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        body { font-family: 'Space Grotesk', sans-serif; background-color: #f0f4f8; }
+        .brutal-border { border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
+        .brutal-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000000; }
+        .chat-container { height: calc(100vh - 180px); }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col md:flex-row overflow-hidden p-3 md:p-4 gap-4 m-0 retro-pattern font-sans text-slate-800 antialiased">
-
-    <aside class="w-full md:w-80 bg-white brutal-border brutal-shadow rounded-2xl p-4 flex flex-col justify-between gap-4 z-10">
-        <div class="space-y-4">
-            <div class="flex items-center justify-between border-b-2 border-slate-100 pb-2">
-                <div class="flex items-center gap-2">
-                    <div class="p-1.5 bg-emerald-100 rounded-lg brutal-border transition-transform hover:rotate-6">
-                        <i data-lucide="shield" class="w-5 h-5 text-emerald-700"></i>
-                    </div>
-                    <h1 class="text-lg font-black tracking-tight text-slate-900">Guardião IA</h1>
-                </div>
-                <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SAFE
-                </span>
-            </div>
-
-            <div class="space-y-1">
-                <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ID do Usuário</label>
-                <div class="relative">
-                    <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    <input type="text" id="userIdInput" value="jovem_estudante_1" 
-                        class="w-full pl-9 pr-3 py-2 bg-slate-50 brutal-border rounded-xl text-xs font-bold focus:outline-none focus:bg-white transition-all">
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Assistente</label>
-                
-                <button onclick="setMode('tutor')" id="btn-tutor" 
-                    class="w-full flex items-center gap-3 p-3 bg-amber-50 brutal-border brutal-shadow-sm rounded-xl text-left transition-all">
-                    <div class="p-2 bg-amber-100 rounded-lg brutal-border text-amber-700">
-                        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+<body class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <div class="lg:col-span-1 bg-white p-4 rounded-2xl brutal-border flex flex-col justify-between h-fit lg:h-[calc(100vh-50px)]">
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black">
+                        <i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i>
                     </div>
                     <div>
-                        <div class="text-xs font-black text-slate-900">Tutor Escolar</div>
-                        <div class="text-[10px] text-slate-500 font-medium">Passo a passo didático</div>
+                        <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
+                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SAFE
+                        </span>
                     </div>
-                </button>
+                </div>
 
-                <button onclick="setMode('story')" id="btn-story" 
-                    class="w-full flex items-center gap-3 p-3 bg-white brutal-border brutal-shadow-sm rounded-xl text-left transition-all">
-                    <div class="p-2 bg-purple-100 rounded-lg brutal-border text-purple-700">
-                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ID do Usuário</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="userIdInput" value="jovem_estudante_1" class="w-full pl-9 pr-3 py-2 bg-slate-50 brutal-border rounded-xl text-xs font-bold focus:outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-xs font-black text-slate-900">Contar Histórias</div>
-                        <div class="text-[10px] text-slate-500 font-medium">Contos mágicos e seguros</div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Assistente</label>
+                        <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left">
+                            <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-600"></i>
+                            <div>
+                                <div class="text-xs font-bold">Tutor Escolar</div>
+                                <div class="text-[10px] text-slate-500">Respostas e auxílio didático</div>
+                            </div>
+                        </button>
+                        <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+                            <div>
+                                <div class="text-xs font-bold">Contar Histórias</div>
+                                <div class="text-[10px] text-slate-500">Contos mágicos e seguros</div>
+                            </div>
+                        </button>
                     </div>
-                </button>
+                </div>
             </div>
-        </div>
 
-        <div class="hidden md:flex bg-blue-50 brutal-border p-3 rounded-xl brutal-shadow-sm items-center gap-3 relative overflow-hidden my-auto">
-            <div class="space-y-1 flex-1 z-10">
-                <h4 class="text-[10px] font-black text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <i data-lucide="info" class="w-3.5 h-3.5 text-blue-600"></i> Dicas do Guardião
-                </h4>
-                <ul class="text-[9px] text-blue-800 font-bold space-y-1 list-disc list-inside opacity-90">
-                    <li>Peça ajuda com tarefas.</li>
-                    <li>Crie contos incríveis.</li>
-                    <li>Envie fotos de gráficos.</li>
-                </ul>
-            </div>
-            <div class="w-16 h-16 rounded-full bg-yellow-300 brutal-border flex items-center justify-center text-center p-1 text-[8px] font-black uppercase tracking-tighter animate-slow-spin shrink-0 shadow-sm select-none">
-                Educação ✦ Nota 10 ✦
-            </div>
-        </div>
-
-        <div class="pt-2 border-t-2 border-slate-100">
-            <button onclick="clearHistory()" 
-                class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs brutal-border brutal-shadow-sm rounded-xl flex items-center justify-center gap-2 transition-all">
+            <button onclick="limparHistorico()" class="w-full mt-6 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all">
                 <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar Histórico
             </button>
         </div>
-    </aside>
 
-    <main class="flex-1 bg-white brutal-border brutal-shadow rounded-2xl flex flex-col overflow-hidden relative">
-        
-        <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b-2 border-slate-900">
-            <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
-                <span id="current-mode-title" class="text-xs font-black uppercase tracking-wider text-amber-400">Modo Tutor Ativo</span>
+        <div class="lg:col-span-3 flex flex-col justify-between bg-white rounded-2xl brutal-border h-[calc(100vh-50px)] overflow-hidden">
+            <div class="bg-slate-900 text-white p-3 px-4 flex items-center justify-between border-b-4 border-black">
+                <span id="chatModeTitle" class="text-[10px] font-black uppercase tracking-widest text-amber-400">MODO TUTOR ATIVO</span>
             </div>
-        </header>
 
-        <div id="chatFeed" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50/50 scroll-smooth">
-            <div id="messageContainer" class="max-w-3xl mx-auto space-y-4">
-                
-                <div class="flex items-start gap-3 animate-message">
-                    <div class="w-8 h-8 rounded-xl bg-slate-900 brutal-border flex items-center justify-center text-white text-sm shrink-0 shadow-sm">🤖</div>
-                    <div class="bg-white brutal-border text-slate-700 py-3 px-4 rounded-xl rounded-tl-none text-xs md:text-sm font-semibold leading-relaxed brutal-shadow-sm max-w-[85%]">
+            <div id="chatBox" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
+                <div class="flex items-start gap-3">
+                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                    <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium">
                         Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
                     </div>
                 </div>
-
             </div>
-        </div>
 
-        <footer class="p-4 bg-white border-t-2 border-slate-900">
-            <div class="max-w-3xl mx-auto">
-                <form id="chatForm" onsubmit="sendMessage(event)" class="relative flex items-center bg-slate-50 brutal-border rounded-xl p-2 pr-3 focus-within:bg-white transition-all">
+            <div class="p-4 bg-white border-t-4 border-black">
+                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-white brutal-border rounded-xl p-2 relative">
                     
-                    <label class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg cursor-pointer transition-all shrink-0 mr-1 active:scale-90">
-                        <i data-lucide="image" class="w-5 h-5"></i>
-                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect()">
+                    <label class="p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center justify-center transition-all">
+                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500"></i>
+                        <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
                     </label>
 
-                    <div id="imagePreviewContainer" class="hidden items-center gap-1.5 bg-slate-200 brutal-border px-2 py-1 rounded-lg mr-2 text-xs font-bold text-slate-700 scale-95 opacity-0 transition-all duration-200">
-                        <span id="fileNameLabel" class="max-w-[100px] truncate">imagem.jpg</span>
-                        <button type="button" onclick="removeSelectedFile()" class="text-rose-600 hover:text-rose-800">
-                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-
-                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." required
-                        class="w-full bg-transparent py-2 px-1 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400">
-
-                    <button type="submit" class="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all shadow-sm shrink-0 active:scale-95">
+                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 px-1 text-sm font-medium focus:outline-none" autocomplete="off">
+                    
+                    <button type="submit" class="p-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn transition-all">
                         <i data-lucide="send" class="w-4 h-4"></i>
                     </button>
                 </form>
+                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1 px-2 hidden"></div>
             </div>
-        </footer>
-    </main>
+        </div>
+
+    </div>
 
     <script>
         lucide.createIcons();
-
         let currentMode = "tutor";
-        // Ajustado para usar caminhos relativos ao próprio servidor do Render
-        const API_URL = window.location.origin;
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function playRetroSound(type) {
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                if (type === 'send') {
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.08);
-                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.08);
-                } else if (type === 'receive') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                    osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.06);
-                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.15);
-                }
-            } catch (e) {}
-        }
 
         function setMode(mode) {
             currentMode = mode;
-            const btnTutor = document.getElementById("btn-tutor");
-            const btnStory = document.getElementById("btn-story");
-            const modeTitle = document.getElementById("current-mode-title");
-            playRetroSound('send');
+            const btnTutor = document.getElementById("btnTutor");
+            const btnStory = document.getElementById("btnStory");
+            const title = document.getElementById("chatModeTitle");
 
-            if (mode === "tutor") {
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-50 brutal-border brutal-shadow-sm rounded-xl text-left transition-all";
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-white brutal-border brutal-shadow-sm rounded-xl text-left transition-all";
-                modeTitle.innerText = "Modo Tutor Ativo";
-                modeTitle.className = "text-xs font-black uppercase tracking-wider text-amber-400";
+            if(mode === "tutor") {
+                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left";
+                btnStory.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100";
+                title.innerText = "MODO TUTOR ATIVO";
+                title.className = "text-[10px] font-black uppercase tracking-widest text-amber-400";
             } else {
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-white brutal-border brutal-shadow-sm rounded-xl text-left transition-all";
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-50 brutal-border brutal-shadow-sm rounded-xl text-left transition-all";
-                modeTitle.innerText = "Modo Contador de Histórias Ativo";
-                modeTitle.className = "text-xs font-black uppercase tracking-wider text-purple-400";
+                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-50 rounded-xl border-2 border-black text-left";
+                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100";
+                title.innerText = "MODO HISTÓRIA ATIVO";
+                title.className = "text-[10px] font-black uppercase tracking-widest text-purple-400";
             }
         }
 
-        function handleFileSelect() {
+        function actualizarStatusArquivo() {
             const input = document.getElementById("fileInput");
-            const container = document.getElementById("imagePreviewContainer");
-            const label = document.getElementById("fileNameLabel");
-            if (input.files && input.files[0]) {
-                label.innerText = input.files[0].name;
-                container.style.display = "flex";
-                setTimeout(() => {
-                    container.classList.remove("scale-95", "opacity-0");
-                    container.classList.add("scale-100", "opacity-100");
-                }, 10);
-            }
-        }
-
-        function removeSelectedFile() {
-            const container = document.getElementById("imagePreviewContainer");
-            container.classList.remove("scale-100", "opacity-100");
-            container.classList.add("scale-95", "opacity-0");
-            setTimeout(() => {
-                document.getElementById("fileInput").value = "";
-                container.style.display = "none";
-            }, 200);
-        }
-
-        function appendMessage(sender, text) {
-            const container = document.getElementById("messageContainer");
-            const containerDiv = document.createElement("div");
-            containerDiv.className = "flex items-start gap-3 animate-message";
-            
-            if (sender === "user") {
-                containerDiv.classList.add("justify-end");
-                containerDiv.innerHTML = `
-                    <div class="bg-slate-800 text-white py-2.5 px-4 rounded-xl rounded-tr-none text-xs md:text-sm font-semibold leading-relaxed shadow-sm max-w-[85%] whitespace-pre-wrap break-words">
-                        ${text}
-                    </div>
-                    <div class="w-8 h-8 rounded-xl bg-slate-200 brutal-border flex items-center justify-center text-slate-700 text-xs font-black shrink-0">ME</div>
-                `;
+            const preview = document.getElementById("filePreview");
+            const icon = document.getElementById("clipIcon");
+            if (input.files.length > 0) {
+                preview.innerText = `📎 Arquivo pronto: ${input.files[0].name}`;
+                preview.classList.remove("hidden");
+                icon.classList.remove("text-slate-500");
+                icon.classList.add("text-emerald-600");
             } else {
-                const isError = text.includes("Desculpe, ocorreu um erro");
-                const contentHtml = isError ? text : marked.parse(text);
-                
-                containerDiv.innerHTML = `
-                    <div class="w-8 h-8 rounded-xl bg-slate-900 brutal-border flex items-center justify-center text-white text-sm shrink-0 shadow-sm">🤖</div>
-                    <div class="${isError ? 'system-error-bubble' : 'bg-white border border-slate-800 brutal-shadow-sm prose-brutal'} text-slate-700 py-3 px-4 rounded-xl rounded-tl-none text-xs md:text-sm font-semibold leading-relaxed max-w-[85%] break-words">
-                        ${contentHtml}
-                    </div>
-                `;
-                playRetroSound('receive');
-            }
-            
-            container.appendChild(containerDiv);
-            scrollToBottom();
-        }
-
-        function toggleLoadingIndicator(show) {
-            const container = document.getElementById("messageContainer");
-            const existingLoader = document.getElementById("ai-loader");
-            
-            if (show && !existingLoader) {
-                const loaderDiv = document.createElement("div");
-                loaderDiv.id = "ai-loader";
-                loaderDiv.className = "flex items-start gap-3 animate-message";
-                loaderDiv.innerHTML = `
-                    <div class="w-8 h-8 rounded-xl bg-slate-900 brutal-border flex items-center justify-center text-white text-sm shrink-0 shadow-sm">🤖</div>
-                    <div class="bg-white border border-slate-800 brutal-shadow-sm text-slate-700 py-4 px-5 rounded-xl rounded-tl-none flex items-center gap-1.5">
-                        <span class="w-2 h-2 bg-slate-900 rounded-full animate-dot-1"></span>
-                        <span class="w-2 h-2 bg-slate-900 rounded-full animate-dot-2"></span>
-                        <span class="w-2 h-2 bg-slate-900 rounded-full animate-dot-3"></span>
-                    </div>
-                `;
-                container.appendChild(loaderDiv);
-                scrollToBottom();
-            } else if (!show && existingLoader) {
-                existingLoader.remove();
+                preview.classList.add("hidden");
+                icon.classList.remove("text-emerald-600");
+                icon.classList.add("text-slate-500");
             }
         }
 
-        function scrollToBottom() {
-            const feedContainer = document.getElementById("chatFeed");
-            feedContainer.scrollTop = feedContainer.scrollHeight;
+        function appendMessage(role, text) {
+            const chatBox = document.getElementById("chatBox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : ''}`;
+
+            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
+            const userTag = `<div class="text-[9px] font-black uppercase p-1 bg-slate-200 rounded-md border border-black">ME</div>`;
+
+            msgDiv.innerHTML = `
+                ${role === 'model' ? botIcon : ''}
+                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium whitespace-pre-wrap">
+                    ${text}
+                </div>
+                ${role === 'user' ? userTag : ''}
+            `;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lucide.createIcons();
         }
 
-        async function sendMessage(event) {
+        function appendError(text) {
+            const chatBox = document.getElementById("chatBox");
+            const errorDiv = document.createElement("div");
+            errorDiv.className = "flex items-start gap-3";
+            errorDiv.innerHTML = `
+                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                <div class="bg-rose-50 text-rose-700 p-3 rounded-2xl border-2 border-rose-400 max-w-[80%] text-sm font-bold">
+                    ${text}
+                </div>
+            `;
+            chatBox.appendChild(errorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lucide.createIcons();
+        }
+
+        async function enviarMensagem(event) {
             event.preventDefault();
-            const messageInput = document.getElementById("messageInput");
+            const msgInput = document.getElementById("messageInput");
             const fileInput = document.getElementById("fileInput");
             const userId = document.getElementById("userIdInput").value;
-            const text = messageInput.value.trim();
+            const message = msgInput.value.trim();
 
-            if (!text) return;
+            if (!message && fileInput.files.length === 0) return;
 
-            playRetroSound('send');
-            appendMessage("user", text);
-            messageInput.value = "";
+            appendMessage("user", message || "📁 Enviou um arquivo para análise.");
+            msgInput.value = "";
 
             const formData = new FormData();
             formData.append("user_id", userId);
-            formData.append("message", text);
+            formData.append("message", message || "Analise o arquivo anexado.");
             formData.append("mode", currentMode);
             if (fileInput.files[0]) {
                 formData.append("file", fileInput.files[0]);
             }
 
-            removeSelectedFile();
-            toggleLoadingIndicator(true);
+            // Reseta o input de arquivo visualmente
+            fileInput.value = "";
+            actualizarStatusArquivo();
 
             try {
-                const response = await fetch(`${API_URL}/api/chat`, {
-                    method: "POST",
-                    body: formData
-                });
+                const response = await fetch("/api/chat", { method: "POST", body: formData });
+                
+                if (response.status === 429) {
+                    appendError("Desculpe, o limite diário ou por minuto da minha inteligência artificial foi atingido. Por favor, aguarde de 1 a 2 minutos antes de tentar novamente.");
+                    return;
+                }
 
-                toggleLoadingIndicator(false);
-
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    throw new Error();
+                }
 
                 const data = await response.json();
                 appendMessage("model", data.response);
-            } catch (error) {
-                toggleLoadingIndicator(false);
-                appendMessage("model", "Desculpe, ocorreu um erro ao tentar conectar com o servidor. Verifique sua conexão e tente novamente.");
+            } catch (err) {
+                appendError("Desculpe, ocorreu um erro interno ao tentar conectar com o servidor. Verifique sua conexão ou tente novamente.");
             }
         }
 
-        async function clearHistory() {
+        async function limparHistorico() {
             const userId = document.getElementById("userIdInput").value;
-            playRetroSound('send');
             try {
-                const response = await fetch(`${API_URL}/api/clear`, {
+                const res = await fetch("/api/clear", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ user_id: userId })
                 });
-                if (response.ok) {
-                    const container = document.getElementById("messageContainer");
-                    container.innerHTML = `
-                        <div class="flex items-start gap-3 animate-message">
-                            <div class="w-8 h-8 rounded-xl bg-slate-900 brutal-border flex items-center justify-center text-white text-sm shrink-0 shadow-sm">🤖</div>
-                            <div class="bg-white brutal-border text-slate-700 py-3 px-4 rounded-xl rounded-tl-none text-xs md:text-sm font-semibold leading-relaxed brutal-shadow-sm max-w-[85%]">
-                                Histórico limpo! Como posso te ajudar agora? 😊
-                            </div>
+                if (res.ok) {
+                    document.getElementById("chatBox").innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                            <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium">Histórico apagado com sucesso! Como posso te ajudar agora?</div>
                         </div>
                     `;
+                    lucide.createIcons();
                 }
-            } catch (e) {
+            } catch (err) {
                 alert("Erro ao limpar histórico.");
             }
         }
