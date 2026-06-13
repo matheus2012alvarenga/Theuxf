@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError  # Captura erros nativos da API do Gemini
+from google.genai.errors import APIError
 from dotenv import load_dotenv
 
 # Configuração de Logs Profissionais
@@ -25,7 +25,7 @@ app = FastAPI(
 # Configuração Estrita de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, substitua pelo domínio real do seu frontend
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,7 +33,7 @@ app.add_middleware(
 
 DB_FILE = "chat_ia.db"
 MODEL_NAME = "gemini-2.5-flash"
-MAX_FILE_SIZE = 5 * 1024 * 1024  # Limite de segurança: 5MB por imagem
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB por imagem
 ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -46,7 +46,6 @@ client = genai.Client(api_key=api_key)
 
 
 def init_db():
-    """Cria a tabela e garante índices para buscas rápidas por user_id."""
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -57,7 +56,6 @@ def init_db():
                 text TEXT
             )
         ''')
-        # Índice para otimizar a velocidade de leitura do histórico quando a base crescer
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_user_id ON historico(user_id)')
         conn.commit()
 
@@ -75,11 +73,9 @@ def salvar_mensagem_no_banco(user_id: str, role: str, text: str):
 
 
 def recuperar_historico_do_banco(user_id: str) -> list:
-    """Recupera e formata o histórico limitando o peso do contexto."""
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
-            # Seleciona as últimas 6 interações de forma performática
             cursor.execute("""
                 SELECT role, text FROM (
                     SELECT id, role, text FROM historico 
@@ -114,7 +110,6 @@ async def chat_endpoint(
     mode: str = Form("tutor"),
     file: UploadFile = File(None)
 ):
-    # Verificação de infraestrutura básica
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
@@ -127,11 +122,9 @@ async def chat_endpoint(
             detail="Desculpe, ocorreu um erro: O ID do usuário e a mensagem não podem estar vazios."
         )
     
-    # Busca histórico prévio antes de registrar a entrada atual
     historico_previo = recuperar_historico_do_banco(user_id)
     salvar_mensagem_no_banco(user_id, "user", message)
     
-    # Definição dos prompts com controle de comportamento estrito
     if mode == "story":
         system_prompt = (
             "Você é um Contador de Histórias mágico e lúdico para crianças.\n"
@@ -148,7 +141,7 @@ async def chat_endpoint(
 
     config = types.GenerateContentConfig(
         system_instruction=system_prompt,
-        temperature=0.6,  # Reduzido levemente para evitar respostas inventadas (alucinações)
+        temperature=0.6,
         safety_settings=[
             types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
             types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
@@ -158,9 +151,7 @@ async def chat_endpoint(
     )
 
     try:
-        # Tratamento de arquivo com validações de segurança em camadas
         if file and file.filename:
-            # Camada de Segurança 1: Tipo de Arquivo (MIME Type)
             if file.content_type not in ALLOWED_MIME_TYPES:
                 raise HTTPException(
                     status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -169,7 +160,6 @@ async def chat_endpoint(
 
             file_bytes = await file.read()
             
-            # Camada de Segurança 2: Tamanho máximo do arquivo
             if len(file_bytes) > MAX_FILE_SIZE:
                 raise HTTPException(
                     status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -191,7 +181,6 @@ async def chat_endpoint(
             conteudo_atual = types.Content(role="user", parts=[types.Part.from_text(text=message)])
             payload_contents = historico_previo + [conteudo_atual]
         
-        # Envio dos dados higienizados para a API do Gemini
         response = client.models.generate_content(
             model=MODEL_NAME,
             contents=payload_contents,
@@ -204,17 +193,14 @@ async def chat_endpoint(
         return {"response": resposta_texto}
         
     except APIError as api_err:
-        # Tratamento específico para falhas na API do Google Gemini (Ex: Cota estourada, erro nos servidores deles)
         logger.error(f"Erro nativo da API do Gemini: {str(api_err)}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="A IA está processando muitas requisições no momento. Aguarde um minutinho e envie de novo!"
         )
     except HTTPException as http_err:
-        # Repassa os erros de validação que nós criamos nas camadas acima
         raise http_err
     except Exception as e:
-        # Fallback genérico para capturar qualquer outro imprevisto de runtime
         logger.error(f"Erro inesperado no servidor: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
