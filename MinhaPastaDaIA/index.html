@@ -35,7 +35,7 @@
         .markdown-content code { background-color: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-weight: bold; }
     </style>
 </head>
-<body class="p-4 md:p-6 relative">
+<body class="p-3 md:p-6 relative">
 
     <div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl brutal-border max-w-sm w-full animate-message text-center">
@@ -113,21 +113,26 @@
         </div>
 
         <div class="lg:col-span-3 flex flex-col justify-between bg-white rounded-2xl brutal-border h-[calc(100vh-50px)] overflow-hidden">
-            <div class="bg-slate-900 text-white p-3.5 px-5 flex items-center gap-2 border-b-4 border-black shrink-0">
-                <i id="headerIcon" data-lucide="graduation-cap" class="w-5 h-5 text-amber-300"></i>
-                <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-300">MODO TUTOR ATIVO</span>
+            <div class="bg-slate-900 text-white p-3.5 px-4 md:px-5 flex items-center justify-between border-b-4 border-black shrink-0">
+                <div class="flex items-center gap-2">
+                    <i id="headerIcon" data-lucide="graduation-cap" class="w-5 h-5 text-amber-300"></i>
+                    <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-300">MODO TUTOR ATIVO</span>
+                </div>
+                <button id="btnStopVoice" onclick="pararVoz()" class="hidden bg-rose-600 hover:bg-rose-700 text-white border border-black font-black text-[10px] px-2.5 py-1 rounded shadow-[2px_2px_0px_#000] flex items-center gap-1 transition-all">
+                    <i data-lucide="volume-x" class="w-3 h-3"></i> PARAR VOZ
+                </button>
             </div>
 
-            <div id="chatBox" class="flex-1 p-5 overflow-y-auto space-y-6 bg-slate-50 custom-scrollbar scroll-smooth">
-                <div class="flex items-start gap-3 animate-message">
+            <div id="chatBox" class="flex-1 p-4 md:p-5 overflow-y-auto space-y-6 bg-slate-50 custom-scrollbar scroll-smooth">
+                <div class="flex items-start gap-2 md:gap-3 justify-start animate-message">
                     <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                    <div class="bg-white p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] relative">
+                    <div class="bg-white p-3.5 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-[75%] w-fit break-words text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed relative mr-auto">
                         Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t-4 border-black space-y-3 shrink-0">
+            <div class="p-3 md:p-4 bg-white border-t-4 border-black space-y-3 shrink-0">
                 <div class="flex flex-wrap gap-2 items-center">
                     <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-full border-2 border-blue-300 transition-transform hover:scale-105">Me ajude com Matemática 📐</button>
                     <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1.5 bg-purple-100 text-purple-800 text-xs font-bold rounded-full border-2 border-purple-300 transition-transform hover:scale-105">Curiosidade histórica 📜</button>
@@ -139,10 +144,14 @@
                         <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
                     </label>
 
-                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-3 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
+                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-2 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
                     
-                    <button type="submit" class="w-10 h-10 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn flex items-center justify-center shrink-0">
+                    <button type="submit" id="submitBtn" class="w-10 h-10 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn flex items-center justify-center shrink-0">
                         <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+
+                    <button type="button" id="stopBtn" onclick="pararGeracao()" class="hidden w-10 h-10 bg-rose-600 text-white rounded-lg hover:bg-rose-700 brutal-btn flex items-center justify-center shrink-0" title="Interromper resposta">
+                        <i data-lucide="square" class="w-4 h-4 fill-white"></i>
                     </button>
                 </form>
                 <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1.5 px-2 hidden"></div>
@@ -156,6 +165,9 @@
         let quizData = [];
         let currentQuizIndex = 0;
         let quizScore = 0;
+        
+        // Controlador global para cancelar a requisição HTTP da mensagem
+        let currentAbortController = null;
 
         function setMode(mode) {
             currentMode = mode;
@@ -196,12 +208,33 @@
             document.getElementById("messageInput").focus();
         }
 
+        // SISTEMA DE VOZ COM CALLBACKS DE EXIBIÇÃO DE BOTÃO
         function narrarTexto(textoLimpo) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(textoLimpo);
             u.lang = 'pt-BR';
             u.rate = 1.0;
+            
+            const btnStopVoice = document.getElementById("btnStopVoice");
+            btnStopVoice.classList.remove("hidden");
+
+            u.onend = () => btnStopVoice.classList.add("hidden");
+            u.onerror = () => btnStopVoice.classList.add("hidden");
+
             window.speechSynthesis.speak(u);
+        }
+
+        // FUNÇÃO QUE EXECUTA A INTERRUPÇÃO DO ÁUDIO
+        function pararVoz() {
+            window.speechSynthesis.cancel();
+            document.getElementById("btnStopVoice").classList.add("hidden");
+        }
+
+        // FUNÇÃO QUE INTERROMPE A EMISSÃO DA MENSAGEM DA IA
+        function pararGeracao() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
         }
 
         function abrirModal() { document.getElementById("modalConfirmacao").classList.remove("hidden"); }
@@ -212,7 +245,6 @@
             window.open(`/api/export/${userId}`, '_blank');
         }
 
-        // CORREÇÃO: Adicionada a palavra-chave 'function' que faltava e quebrava o script
         async function abrirQuiz() {
             document.getElementById("modalQuiz").classList.remove("hidden");
             document.getElementById("quizLoading").classList.remove("hidden");
@@ -291,12 +323,12 @@
             renderizarQuestaoQuiz();
         }
 
+        // CORREÇÃO VISUAL: ACABOU O BLOCO GRANDE. USANDO W-FIT + MARGINS PARA DEIXAR COMPACTO E LINDO NO CELULAR
         function appendMessage(role, text) {
             removeTypingIndicator();
             const chatBox = document.getElementById("chatBox");
             const msgDiv = document.createElement("div");
-            // CORREÇÃO: Removido caractere estranho residual '安全' que estava na classe css
-            msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
+            msgDiv.className = `flex items-start gap-2 md:gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
 
             const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
             const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shrink-0 mt-1">ME</div>`;
@@ -307,11 +339,12 @@
             }
 
             const conteudoFinal = role === 'model' ? `<div class="markdown-content">${marked.parse(textoTratado)}</div>` : textoTratado;
-            const btnAudio = role === 'model' ? `<button onclick="narrarTexto(\`${textoTratado.replace(/`/g, "'")}\`)" class="absolute -bottom-3 right-4 bg-white border border-black text-slate-800 rounded-full p-1 hover:bg-slate-100 transition-all shadow-[1px_1px_0px_#000] z-10" title="Ouvir resposta"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i></button>` : '';
+            const btnAudio = role === 'model' ? `<button onclick="narrarTexto(\`${textoTratado.replace(/`/g, "'").replace(/"/g, '&quot;')}\`)" class="absolute -bottom-3 right-4 bg-white border border-black text-slate-800 rounded-full p-1 hover:bg-slate-100 transition-all shadow-[1px_1px_0px_#000] z-10" title="Ouvir resposta"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i></button>` : '';
 
+            // w-fit faz a caixinha se moldar perfeitamente ao tamanho da palavra, ml-auto joga pra direita e mr-auto pra esquerda
             msgDiv.innerHTML = `
                 ${role === 'model' ? botIcon : ''}
-                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000] leading-relaxed relative">
+                <div class="${role === 'user' ? 'bg-slate-800 text-white ml-auto' : 'bg-white text-black mr-auto'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-[75%] w-fit break-words text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed relative">
                     ${conteudoFinal}
                     ${btnAudio}
                 </div>
@@ -330,7 +363,7 @@
             indicatorDiv.className = "flex items-start gap-3 animate-message";
             indicatorDiv.innerHTML = `
                 <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[2px_2px_0px_#000]">
+                <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[2px_2px_0px_#000] w-fit mr-auto">
                     <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse"></span>
                     <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-75"></span>
                     <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-150"></span>
@@ -353,7 +386,7 @@
             errorDiv.className = "flex items-start gap-3 animate-message";
             errorDiv.innerHTML = `
                 <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-rose-50 text-rose-800 p-3 rounded-2xl border-2 border-rose-400 max-w-[85%] text-sm font-bold shadow-[2px_2px_0px_#000]">${text}</div>
+                <div class="bg-rose-50 text-rose-800 p-3 rounded-2xl border-2 border-rose-400 max-w-[85%] text-sm font-bold shadow-[2px_2px_0px_#000] w-fit mr-auto">${text}</div>
             `;
             chatBox.appendChild(errorDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -373,6 +406,13 @@
             msgInput.value = "";
             showTypingIndicator();
 
+            // Ativa o botão de parar e esconde o de enviar
+            document.getElementById("submitBtn").classList.add("hidden");
+            document.getElementById("stopBtn").classList.remove("hidden");
+
+            // Instancia o AbortController para esta requisição específica
+            currentAbortController = new AbortController();
+
             const formData = new FormData();
             formData.append("user_id", userId);
             formData.append("message", message || "Analise o arquivo anexado.");
@@ -385,12 +425,25 @@
             atualizarStatusArquivo();
 
             try {
-                const response = await fetch("/api/chat", { method: "POST", body: formData });
+                const response = await fetch("/api/chat", { 
+                    method: "POST", 
+                    body: formData,
+                    signal: currentAbortController.signal 
+                });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
                 appendMessage("model", data.response);
             } catch (err) {
-                appendError("Desculpe, ocorreu um erro ao tentar conectar com o servidor. Verifique sua conexão e tente novamente.");
+                if (err.name === 'AbortError') {
+                    appendError("Geração interrompida por você.");
+                } else {
+                    appendError("Desculpe, ocorreu um erro ao tentar conectar com o servidor. Verifique sua conexão e tente novamente.");
+                }
+            } finally {
+                // Restaura o botão de enviar ao final
+                document.getElementById("submitBtn").classList.remove("hidden");
+                document.getElementById("stopBtn").classList.add("hidden");
+                currentAbortController = null;
             }
         }
 
@@ -407,7 +460,7 @@
                     document.getElementById("chatBox").innerHTML = `
                         <div class="flex items-start gap-3 animate-message">
                             <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                            <div class="bg-white p-3 rounded-2xl border-2 border-black text-sm font-medium">Histórico limpo! Como posso te ajudar?</div>
+                            <div class="bg-white p-3 rounded-2xl border-2 border-black text-sm font-medium w-fit mr-auto">Histórico limpo! Como posso te ajudar?</div>
                         </div>
                     `;
                     lucide.createIcons();
