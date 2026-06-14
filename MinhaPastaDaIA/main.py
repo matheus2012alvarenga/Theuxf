@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import sqlite3
 import logging
@@ -52,7 +53,7 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Encerrando o servidor...")
 
-app = FastAPI(title="Guardião IA", version="4.0.0", lifespan=lifespan)
+app = FastAPI(title="Guardião IA", version="5.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -107,6 +108,9 @@ def recuperar_historico_do_banco(user_id: str, limite: int = 6) -> list:
 class ClearRequest(BaseModel):
     user_id: str
 
+class QuizRequest(BaseModel):
+    user_id: str
+
 # -----------------------------------------------------------------------------
 # ROTAS
 # -----------------------------------------------------------------------------
@@ -135,8 +139,8 @@ async def chat_endpoint(
     else:
         system_prompt = (
             "Você é um Tutor de IA super didático e inteligente.\n"
-            "DIRETRIZ DE RESPOSTA FATO/RESULTADO: Se o usuário pedir um dado direto, entregue IMEDIATAMENTE.\n"
-            "DIRETRIZ DE RESOLUÇÃO: Para problemas escolares, aja de forma guiada passo a passo usando títulos e listas. Nunca dê apenas a resposta final sem explicar."
+            "DIRETRIZ DE RESPOSTA FATO/RESULTADO: Se o usuário pedir um dado direto, entregue IMEDIATAMENTE em formato Markdown.\n"
+            "DIRETRIZ DE RESOLUÇÃO: Aja de forma guiada passo a passo usando títulos e listas estruturadas."
         )
 
     config = types.GenerateContentConfig(system_instruction=system_prompt, temperature=0.7)
@@ -151,9 +155,6 @@ async def chat_endpoint(
             with open(local_file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
             
-            logger.info(f"Arquivo salvo localmente: {local_file_path}")
-            
-            # Upload para o Google Gemini
             uploaded_gemini_file = client.files.upload(file=local_file_path)
             user_parts.append(uploaded_gemini_file)
 
@@ -173,26 +174,17 @@ async def chat_endpoint(
         
     except APIError as api_err:
         logger.error(f"Erro na API do Gemini: {str(api_err)}")
-        if api_err.code == 429:
-            raise HTTPException(status_code=429, detail="Limite de requisições do Gemini atingido. Aguarde um momento.")
         raise HTTPException(status_code=502, detail="Erro de comunicação com o Gemini.")
     except Exception as e:
         logger.error(f"Erro interno: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno no servidor.")
     finally:
-        # SISTEMA DE LIMPEZA CRÍTICO: Evita estourar o limite de armazenamento do Google
         if local_file_path and os.path.exists(local_file_path):
-            try:
-                os.remove(local_file_path)
-            except Exception as clean_err:
-                logger.error(f"Falha ao apagar arquivo temporário: {str(clean_err)}")
-                
+            try: os.remove(local_file_path)
+            except: pass
         if uploaded_gemini_file:
-            try:
-                client.files.delete(name=uploaded_gemini_file.name)
-                logger.info(f"Arquivo apagado com sucesso dos servidores do Google.")
-            except Exception as g_clean_err:
-                logger.error(f"Falha ao limpar cache do Google Gemini: {str(g_clean_err)}")
+            try: client.files.delete(name=uploaded_gemini_file.name)
+            except: pass
 
 @app.post("/api/clear")
 async def clear_chat(request: ClearRequest):
@@ -202,10 +194,9 @@ async def clear_chat(request: ClearRequest):
             cursor.execute("DELETE FROM historico WHERE user_id = ?", (request.user_id,))
             conn.commit()
         return {"status": "success"}
-    except sqlite3.Error as e:
+    except sqlite3.Error:
         raise HTTPException(status_code=500, detail="Falha ao limpar o histórico.")
 
-# NOVO SISTEMA: Exportar Histórico de Conversa
 @app.get("/api/export/{user_id}")
 async def export_chat(user_id: str):
     try:
@@ -215,20 +206,46 @@ async def export_chat(user_id: str):
             rows = cursor.fetchall()
             
         if not rows:
-            return PlainTextResponse("Nenhum histórico encontrado para este usuário.", status_code=404)
+            return PlainTextResponse("Nenhum histórico encontrado.", status_code=404)
 
-        conteudo_exportacao = f"--- HISTÓRICO DE ESTUDOS: GUARDIÃO IA ---\nID do Aluno: {user_id}\n\n"
+        conteudo = f"--- RELATÓRIO DE ESTUDOS: GUARDIÃO IA ---\nID Aluno: {user_id}\n\n"
         for role, text, timestamp in rows:
             autor = "Aluno" if role == "user" else "Tutor IA"
-            conteudo_exportacao += f"[{timestamp}] {autor} disse:\n{text}\n\n{'-'*40}\n\n"
+            conteudo += f"[{timestamp}] {autor}:\n{text}\n\n{'-'*40}\n\n"
 
-        return PlainTextResponse(
-            conteudo_exportacao, 
-            media_type="text/plain",
-            headers={"Content-Disposition": f"attachment; filename=aula_{user_id}.txt"}
-        )
+        return PlainTextResponse(conteudo, headers={"Content-Disposition": f"attachment; filename=aula_{user_id}.txt"})
     except sqlite3.Error:
-        raise HTTPException(status_code=500, detail="Erro ao gerar arquivo de exportação.")
+        raise HTTPException(status_code=500, detail="Erro ao exportar.")
+
+# SISTEMA NOVO: Geração automática de Quizzes baseados na conversa do usuário
+@app.post("/api/quiz")
+async def generate_quiz(request: QuizRequest):
+    historico = recuperar_historico_do_banco(request.user_id, limite=12)
+    if not historico or len(historico) < 2:
+        raise HTTPException(status_code=400, detail="Converse um pouco com a IA antes de gerar um desafio!")
+
+    prompt_quiz = (
+        "Com base nos tópicos que conversamos nesta sessão, gere um quiz estrito com exatamente 3 perguntas de múltipla escolha para testar o conhecimento do aluno.\n"
+        "Você DEVE responder APENAS e estritamente com um JSON válido no seguinte formato de objeto:\n"
+        '{"quizzes": [{"question": "Texto da pergunta", "options": ["A) Opção 1", "B) Opção 2", "C) Opção 3", "D) Opção 4"], "answer": "A"}]}'
+    )
+    
+    config = types.GenerateContentConfig(
+        system_instruction="Você é um avaliador acadêmico rigoroso que gera outputs estruturados puramente em JSON.",
+        temperature=0.6,
+        response_mime_type="application/json"
+    )
+
+    try:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=historico + [types.Content(role="user", parts=[types.Part.from_text(text=prompt_quiz)])],
+            config=config
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        logger.error(f"Erro ao construir Quiz: {str(e)}")
+        raise HTTPException(status_code=500, detail="O Gemini falhou ao estruturar o quiz. Tente novamente.")
 
 @app.get("/")
 async def read_index():
