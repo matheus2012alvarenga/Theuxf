@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,469 +9,1004 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { 
-            font-family: 'Space Grotesk', sans-serif; 
-            background-color: #f0f4f8; 
-            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-            background-size: 24px 24px;
+        :root {
+            --bg: #f0f4f8;
+            --dot: #cbd5e1;
+            --surface: #ffffff;
+            --surface2: #f8fafc;
+            --dot2: #e2e8f0;
+            --text: #0f172a;
+            --text2: #475569;
+            --border: #000000;
+            --scrolltrack: #f1f5f9;
+            --input-bg: #f1f5f9;
         }
-        .brutal-border { border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
-        .brutal-btn { transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .brutal-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0px #000000; }
-        
-        /* NOVO: Padrão de pontos para preencher os lados vazios do chat com elegância */
-        .chat-canvas-bg {
-            background-color: #f8fafc;
-            background-image: radial-gradient(#e2e8f0 2px, transparent 2px);
-            background-size: 16px 16px;
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --dot: #1e293b;
+            --surface: #1e293b;
+            --surface2: #0f172a;
+            --dot2: #334155;
+            --text: #f1f5f9;
+            --text2: #94a3b8;
+            --border: #475569;
+            --scrolltrack: #1e293b;
+            --input-bg: #0f172a;
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-left: 2px solid #000; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            transition: background-color 0.3s, color 0.3s;
+            color: var(--text);
         }
-        .animate-message { animation: fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        
-        .markdown-content p { margin-bottom: 0.75rem; }
-        .markdown-content strong { font-weight: 700; color: #000; }
-        .markdown-content ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.75rem; }
-        .markdown-content ol { list-style-type: decimal; margin-left: 1.25rem; margin-bottom: 0.75rem; }
-        .markdown-content h3 { font-size: 1.1rem; font-weight: 900; margin-top: 1rem; margin-bottom: 0.5rem; text-transform: uppercase; }
-        .markdown-content code { background-color: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-weight: bold; }
+
+        .brutal-border {
+            border: 2.5px solid var(--border);
+            box-shadow: 4px 4px 0px var(--border);
+        }
+        .brutal-border-sm {
+            border: 2px solid var(--border);
+            box-shadow: 2px 2px 0px var(--border);
+        }
+        .brutal-btn {
+            transition: all 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .brutal-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: 1px 1px 0px var(--border) !important;
+        }
+
+        /* Sidebar surface */
+        .sidebar {
+            background-color: var(--surface);
+            border-color: var(--border);
+        }
+
+        /* Chat canvas */
+        .chat-canvas-bg {
+            background-color: var(--surface2);
+            background-image: radial-gradient(var(--dot2) 2px, transparent 2px);
+            background-size: 18px 18px;
+        }
+
+        /* Bubble colors */
+        .bubble-ai {
+            background-color: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .bubble-user {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-color: var(--border);
+        }
+        [data-theme="dark"] .bubble-user {
+            background-color: #6366f1;
+        }
+
+        /* Header dark */
+        .chat-header {
+            background-color: #0f172a;
+        }
+        [data-theme="dark"] .chat-header {
+            background-color: #020617;
+            border-bottom-color: #334155;
+        }
+
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: var(--scrolltrack); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-message { animation: fadeInUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .toast-enter { animation: slideDown 0.3s ease forwards; }
+
+        @keyframes pulse-dot {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40%            { transform: scale(1);   opacity: 1; }
+        }
+        .typing-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+        /* Cursor blink while streaming */
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        .cursor-blink::after {
+            content: '▋';
+            animation: blink 0.7s step-end infinite;
+            color: #6366f1;
+            font-size: 0.85em;
+        }
+
+        /* Markdown */
+        .markdown-content p { margin-bottom: 0.65rem; line-height: 1.65; }
+        .markdown-content strong { font-weight: 800; }
+        .markdown-content ul  { list-style-type: disc;    margin-left: 1.2rem; margin-bottom: 0.65rem; }
+        .markdown-content ol  { list-style-type: decimal; margin-left: 1.2rem; margin-bottom: 0.65rem; }
+        .markdown-content li  { margin-bottom: 0.2rem; }
+        .markdown-content h3  { font-size: 1rem; font-weight: 900; margin: 1rem 0 0.35rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .markdown-content code {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.82em;
+            font-weight: 700;
+        }
+        [data-theme="dark"] .markdown-content code { background-color: #334155; color: #e2e8f0; }
+        .markdown-content pre { background: #1e293b; color: #e2e8f0; padding: 0.75rem 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 0.65rem; border: 2px solid #000; }
+        .markdown-content pre code { background: none; color: inherit; padding: 0; font-size: 0.8em; }
+
+        /* Mode buttons */
+        .mode-btn-active-tutor  { background:#fef3c7; border:2px solid #000; }
+        .mode-btn-active-story  { background:#ede9fe; border:2px solid #000; }
+        .mode-btn-inactive      { background:transparent; border:2px dashed var(--border); opacity: 0.7; }
+        [data-theme="dark"] .mode-btn-active-tutor { background:#3f3300; }
+        [data-theme="dark"] .mode-btn-active-story { background:#2e1065; }
+        [data-theme="dark"] .mode-btn-inactive     { opacity: 0.5; }
+
+        /* Input area */
+        .input-zone {
+            background-color: var(--surface);
+            border-top: 3px solid var(--border);
+        }
+        .input-field {
+            background-color: var(--input-bg);
+            border: 2px solid var(--border);
+            color: var(--text);
+        }
+        .input-field:focus { outline: none; background-color: var(--surface); }
+
+        /* Mobile drawer overlay */
+        #drawerOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 30;
+            backdrop-filter: blur(2px);
+        }
+        #drawerOverlay.open { display: block; }
+        #sidebar {
+            position: fixed;
+            left: -100%;
+            top: 0; bottom: 0;
+            width: 280px;
+            z-index: 40;
+            transition: left 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            overflow-y: auto;
+        }
+        #sidebar.open { left: 0; }
+
+        @media (min-width: 1024px) {
+            #sidebar {
+                position: static;
+                width: auto;
+                z-index: auto;
+                transition: none;
+            }
+            #drawerOverlay { display: none !important; }
+        }
+
+        /* Session stats badge */
+        .stat-badge {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* Suggestion chips */
+        .chip {
+            transition: transform 0.15s, box-shadow 0.15s;
+            border: 2px solid;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .chip:hover { transform: translateY(-2px); }
+        .chip:active { transform: translateY(0); }
+
+        /* Copy button on hover */
+        .msg-wrapper:hover .copy-btn { opacity: 1; }
+        .copy-btn { opacity: 0; transition: opacity 0.2s; }
+
+        /* Toast */
+        #toastContainer {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            background: #0f172a;
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 2px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 220px;
+        }
+        [data-theme="dark"] .toast { background: #f8fafc; color: #0f172a; }
+
+        /* Scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* Dark mode label tweaks */
+        .label-sm {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text2);
+        }
+
+        /* Scrollbar smooth */
+        #chatBox { scroll-behavior: smooth; }
     </style>
 </head>
-<body class="p-3 md:p-6 relative">
+<body class="p-2 md:p-5">
 
-    <div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-2xl brutal-border max-w-sm w-full animate-message text-center">
-            <h3 class="text-lg font-black mb-2">Apagar histórico?</h3>
-            <p class="text-sm text-slate-700 font-medium mb-6">Todas as mensagens atuais sumirão de forma permanente.</p>
-            <div class="flex gap-3">
-                <button onclick="fecharModal()" class="flex-1 py-2 bg-slate-100 border-2 border-black font-bold rounded-xl brutal-btn">Cancelar</button>
-                <button onclick="confirmarLimpeza()" class="flex-1 py-2 bg-rose-50 text-white border-2 border-black font-bold rounded-xl brutal-btn">Apagar</button>
-            </div>
+<!-- ===================== TOAST CONTAINER ===================== -->
+<div id="toastContainer"></div>
+
+<!-- ===================== MOBILE DRAWER OVERLAY ===================== -->
+<div id="drawerOverlay" onclick="fecharDrawer()"></div>
+
+<!-- ===================== MODAL: CONFIRMAÇÃO LIMPAR ===================== -->
+<div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="p-6 rounded-2xl brutal-border max-w-sm w-full animate-message text-center" style="background:var(--surface)">
+        <div class="w-12 h-12 bg-rose-100 rounded-2xl border-2 border-black flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="trash-2" class="w-6 h-6 text-rose-600"></i>
+        </div>
+        <h3 class="text-base font-black mb-1">Apagar histórico?</h3>
+        <p class="text-xs font-medium mb-5" style="color:var(--text2)">Todas as mensagens da sessão serão removidas permanentemente.</p>
+        <div class="flex gap-3">
+            <button onclick="fecharModal()" class="flex-1 py-2.5 text-sm font-bold rounded-xl brutal-btn brutal-border-sm" style="background:var(--input-bg)">Cancelar</button>
+            <button onclick="confirmarLimpeza()" class="flex-1 py-2.5 bg-rose-500 text-white text-sm font-bold rounded-xl brutal-btn brutal-border-sm">🗑️ Apagar</button>
         </div>
     </div>
+</div>
 
-    <div id="modalQuiz" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-2xl brutal-border max-w-lg w-full animate-message">
-            <div class="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
-                <h3 class="text-xl font-black flex items-center gap-2">🧠 Desafio de Conhecimento</h3>
-                <button onclick="fecharQuiz()" class="text-black font-bold border-2 border-black px-2 rounded-lg hover:bg-slate-100">X</button>
+<!-- ===================== MODAL: QUIZ ===================== -->
+<div id="modalQuiz" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="p-6 rounded-2xl brutal-border max-w-lg w-full animate-message" style="background:var(--surface)">
+        <div class="flex justify-between items-center mb-4 pb-3 border-b-2" style="border-color:var(--border)">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🧠</span>
+                <h3 class="text-lg font-black">Desafio de Conhecimento</h3>
             </div>
-            <div id="quizLoading" class="text-center py-8 font-bold text-slate-700">
-                <div class="animate-bounce mb-2">🤔</div> Analisando nossa conversa e preparando perguntas...
+            <button onclick="fecharQuiz()" class="w-8 h-8 flex items-center justify-center font-black rounded-lg border-2 hover:bg-slate-100 brutal-btn" style="border-color:var(--border)">✕</button>
+        </div>
+        <div id="quizLoading" class="text-center py-10 font-bold" style="color:var(--text2)">
+            <div class="text-3xl mb-3 animate-bounce">🤔</div>
+            Analisando nossa conversa e preparando perguntas...
+        </div>
+        <div id="quizContent" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] bg-slate-900 text-amber-300 font-black px-3 py-1 rounded-full uppercase tracking-wider" id="quizProgress">Pergunta 1 de 3</span>
+                <span id="quizScoreBadge" class="text-[10px] font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">✅ 0 acertos</span>
             </div>
-            <div id="quizContent" class="hidden space-y-4">
-                <div class="text-xs bg-slate-900 text-amber-300 font-black px-2 py-1 rounded w-fit uppercase" id="quizProgress">Pergunta 1 de 3</div>
-                <h4 id="quizQuestion" class="text-base font-black leading-tight text-slate-900"></h4>
-                <div id="quizOptions" class="space-y-2.5"></div>
-                <button id="btnNextQuiz" onclick="proximaQuestao()" class="hidden w-full py-2.5 bg-black text-white font-bold rounded-xl brutal-btn text-center mt-4">Avançar Próxima ➔</button>
-            </div>
+            <h4 id="quizQuestion" class="text-base font-black leading-snug" style="color:var(--text)"></h4>
+            <div id="quizOptions" class="space-y-2"></div>
+            <button id="btnNextQuiz" onclick="proximaQuestao()" class="hidden w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl brutal-btn brutal-border-sm text-sm mt-2">Próxima Pergunta ➔</button>
         </div>
     </div>
+</div>
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        <div class="lg:col-span-1 bg-white p-4 rounded-2xl brutal-border flex flex-col h-fit lg:h-[calc(100vh-50px)]">
-            <div class="flex items-center gap-3 mb-6 shrink-0">
-                <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black"><i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i></div>
-                <div>
-                    <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
-                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">ONLINE</span>
+<!-- ===================== MAIN LAYOUT ===================== -->
+<div class="max-w-7xl mx-auto flex gap-5 h-[calc(100vh-2.5rem)]">
+
+    <!-- ========== SIDEBAR ========== -->
+    <div id="sidebar" class="sidebar brutal-border rounded-2xl w-72 lg:w-64 xl:w-72 shrink-0 flex flex-col p-4 gap-4 sidebar-scroll">
+
+        <!-- Logo -->
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black">
+                <i data-lucide="shield" class="w-5 h-5 text-emerald-700"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-black tracking-tight leading-none" style="color:var(--text)">Guardião IA</h1>
+                <div class="flex items-center gap-1 mt-0.5">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Online</span>
                 </div>
             </div>
-
-            <div class="space-y-5 shrink-0">
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Identificação</label>
-                    <input type="text" id="userIdInput" value="jovem_estudante_1" class="w-full h-10 pl-3 pr-3 bg-slate-100 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-white transition-all">
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Modo de IA</label>
-                    <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-100 rounded-xl border-2 border-black text-left brutal-btn">
-                        <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-700"></i>
-                        <div><div class="text-xs font-bold">Tutor Escolar</div><div class="text-[10px] font-medium text-slate-700">Didático e Direto</div></div>
-                    </button>
-                    <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all">
-                        <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
-                        <div><div class="text-xs font-bold">Contar Histórias</div><div class="text-[10px] font-medium text-slate-700">Contos lúdicos mágicos</div></div>
-                    </button>
-                </div>
-
-                <button onclick="abrirQuiz()" class="w-full py-3 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border-2 border-black rounded-xl font-black text-xs flex items-center justify-center gap-2 brutal-btn">
-                    <i data-lucide="brain-circuit" class="w-4 h-4"></i> GERAR DESAFIO (QUIZ)
-                </button>
-            </div>
-
-            <div class="mt-6 flex-1 overflow-y-auto pr-2 custom-scrollbar hidden lg:block border-t border-slate-200 pt-4">
-                <h3 class="text-[10px] font-black uppercase text-slate-600 tracking-wider mb-3">Ações da Sessão</h3>
-                <button onclick="baixarAula()" class="w-full text-left text-xs font-bold text-slate-700 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border-2 border-black mb-2 transition-all flex items-center gap-2">
-                    <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-600"></i> Salvar Aula (.TXT)
-                </button>
-            </div>
-
-            <button onclick="abrirModal()" class="w-full mt-auto py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all shrink-0">
-                <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar Histórico
+            <!-- Dark mode toggle -->
+            <button onclick="toggleDarkMode()" id="darkToggle" title="Alternar modo escuro"
+                class="ml-auto w-8 h-8 rounded-xl border-2 flex items-center justify-center hover:scale-105 transition-transform"
+                style="border-color:var(--border); background:var(--input-bg)">
+                <i data-lucide="moon" class="w-4 h-4"></i>
             </button>
         </div>
 
-        <div class="lg:col-span-3 flex flex-col justify-between bg-white rounded-2xl brutal-border h-[calc(100vh-50px)] overflow-hidden">
-            <div class="bg-slate-900 text-white p-3.5 px-4 md:px-5 flex items-center justify-between border-b-4 border-black shrink-0">
-                <div class="flex items-center gap-2">
-                    <i id="headerIcon" data-lucide="graduation-cap" class="w-5 h-5 text-amber-300"></i>
-                    <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-300">MODO TUTOR ATIVO</span>
-                </div>
-                <button id="btnStopVoice" onclick="pararVoz()" class="hidden bg-rose-600 hover:bg-rose-700 text-white border-2 border-black font-black text-[10px] px-3 py-1 rounded-lg shadow-[2px_2px_0px_#000] flex items-center gap-1 transition-all">
-                    <i data-lucide="volume-x" class="w-3.5 h-3.5"></i> PARAR VOZ
+        <!-- Stats row -->
+        <div class="flex gap-2">
+            <div class="stat-badge flex-1 text-center" style="color:var(--text)">
+                <div id="statMsgs" class="text-lg font-black leading-none">0</div>
+                <div style="color:var(--text2)">mensagens</div>
+            </div>
+            <div class="stat-badge flex-1 text-center" style="color:var(--text)">
+                <div id="statMode" class="text-lg font-black leading-none">📐</div>
+                <div style="color:var(--text2)">modo ativo</div>
+            </div>
+        </div>
+
+        <!-- ID -->
+        <div class="space-y-1.5">
+            <label class="label-sm">Identificação</label>
+            <input type="text" id="userIdInput" value="jovem_estudante_1"
+                class="w-full h-9 px-3 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-400 transition-all input-field">
+        </div>
+
+        <!-- Mode -->
+        <div class="space-y-1.5">
+            <label class="label-sm">Modo de IA</label>
+            <div class="space-y-2">
+                <button id="btnTutor" onclick="setMode('tutor')"
+                    class="w-full flex items-center gap-3 p-3 rounded-xl mode-btn-active-tutor brutal-btn">
+                    <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-700 shrink-0"></i>
+                    <div class="text-left">
+                        <div class="text-xs font-bold" style="color:var(--text)">Tutor Escolar</div>
+                        <div class="text-[10px] font-medium" style="color:var(--text2)">Didático e objetivo</div>
+                    </div>
+                </button>
+                <button id="btnStory" onclick="setMode('story')"
+                    class="w-full flex items-center gap-3 p-3 rounded-xl mode-btn-inactive brutal-btn">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-600 shrink-0"></i>
+                    <div class="text-left">
+                        <div class="text-xs font-bold" style="color:var(--text)">Contar Histórias</div>
+                        <div class="text-[10px] font-medium" style="color:var(--text2)">Contos lúdicos mágicos</div>
+                    </div>
                 </button>
             </div>
+        </div>
 
-            <div id="chatBox" class="flex-1 p-4 md:p-5 overflow-y-auto space-y-6 chat-canvas-bg custom-scrollbar scroll-smooth">
-                <div class="flex items-start gap-2 md:gap-3 justify-start animate-message">
-                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                    <div class="bg-white p-3.5 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-[70%] w-fit break-words text-sm font-medium shadow-[3px_3px_0px_#000] leading-relaxed relative mr-auto">
-                        Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
+        <!-- Quiz -->
+        <button onclick="abrirQuiz()"
+            class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-black rounded-xl font-black text-xs flex items-center justify-center gap-2 brutal-btn"
+            style="box-shadow: 3px 3px 0 #000">
+            <i data-lucide="brain-circuit" class="w-4 h-4"></i> Gerar Desafio (Quiz)
+        </button>
+
+        <!-- Divider -->
+        <div class="border-t" style="border-color:var(--dot2)"></div>
+
+        <!-- Actions -->
+        <div class="space-y-1.5">
+            <label class="label-sm">Ações da sessão</label>
+            <button onclick="baixarAula()"
+                class="w-full text-left text-xs font-bold p-2.5 rounded-xl border-2 brutal-btn flex items-center gap-2 transition-colors"
+                style="background:var(--input-bg); border-color:var(--border); color:var(--text)">
+                <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                Salvar aula (.TXT)
+            </button>
+            <button onclick="copiarHistorico()"
+                class="w-full text-left text-xs font-bold p-2.5 rounded-xl border-2 brutal-btn flex items-center gap-2 transition-colors"
+                style="background:var(--input-bg); border-color:var(--border); color:var(--text)">
+                <i data-lucide="clipboard-copy" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                Copiar conversa
+            </button>
+        </div>
+
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Clear -->
+        <button onclick="abrirModal()"
+            class="w-full py-2 text-xs font-bold rounded-xl border-2 border-rose-300 text-rose-600 hover:bg-rose-50 flex items-center justify-center gap-2 transition-colors brutal-btn">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar histórico
+        </button>
+    </div>
+
+    <!-- ========== CHAT PANEL ========== -->
+    <div class="flex-1 flex flex-col rounded-2xl brutal-border overflow-hidden min-w-0">
+
+        <!-- Chat header -->
+        <div class="chat-header text-white px-4 py-3 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <!-- Mobile menu toggle -->
+                <button onclick="abrirDrawer()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i data-lucide="menu" class="w-4 h-4 text-white"></i>
+                </button>
+                <i id="headerIcon" data-lucide="graduation-cap" class="w-4 h-4 text-amber-300 hidden sm:block"></i>
+                <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-300">Modo Tutor Ativo</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Regenerate last -->
+                <button id="btnRegenerate" onclick="regenerarUltima()" title="Regenerar última resposta"
+                    class="hidden items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span class="hidden sm:inline">Regenerar</span>
+                </button>
+                <!-- Stop voice -->
+                <button id="btnStopVoice" onclick="pararVoz()"
+                    class="hidden items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white border-2 border-black text-[10px] font-black px-2.5 py-1.5 rounded-lg brutal-btn">
+                    <i data-lucide="volume-x" class="w-3 h-3"></i>
+                    <span class="hidden sm:inline">Parar voz</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="chatBox" class="flex-1 p-4 md:p-5 overflow-y-auto space-y-5 chat-canvas-bg custom-scrollbar">
+            <!-- Welcome -->
+            <div class="flex items-start gap-2.5 justify-start animate-message msg-wrapper">
+                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1">
+                    <i data-lucide="bot" class="w-4 h-4"></i>
+                </div>
+                <div class="relative bubble-ai p-3.5 rounded-2xl brutal-border-sm max-w-[85%] lg:max-w-[72%] text-sm font-medium leading-relaxed">
+                    <div class="markdown-content">
+                        <p>Olá! Eu sou o <strong>Guardião IA</strong>, seu assistente inteligente de estudos 🛡️</p>
+                        <p>Posso te ajudar a aprender qualquer matéria, contar histórias incríveis, e ainda gerar quizzes sobre o que conversamos!</p>
+                        <p>Como posso te ajudar hoje? 😊</p>
                     </div>
+                    <button onclick="narrarTexto('Olá! Eu sou o Guardião IA, seu assistente inteligente de estudos. Posso te ajudar a aprender qualquer matéria, contar histórias incríveis, e ainda gerar quizzes sobre o que conversamos! Como posso te ajudar hoje?')"
+                        class="copy-btn absolute -bottom-3 right-10 bg-white border border-slate-300 text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-all shadow-sm z-10" title="Ouvir">
+                        <i data-lucide="volume-2" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="copiarTexto('Olá! Eu sou o Guardião IA.')" title="Copiar"
+                        class="copy-btn absolute -bottom-3 right-2 bg-white border border-slate-300 text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-all shadow-sm z-10">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                    </button>
+                    <div class="text-[9px] font-bold mt-2 opacity-40" style="color:var(--text2)" id="welcome-ts"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="p-3 md:p-4 bg-white border-t-4 border-black space-y-3 shrink-0">
-                <div class="flex flex-wrap gap-2 items-center">
-                    <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-full border-2 border-blue-300 transition-transform hover:scale-105">Me ajude com Matemática 📐</button>
-                    <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1.5 bg-purple-100 text-purple-800 text-xs font-bold rounded-full border-2 border-purple-300 transition-transform hover:scale-105">Curiosidade histórica 📜</button>
-                </div>
+        <!-- Suggestion chips -->
+        <div id="chipsBar" class="px-4 py-2 flex gap-2 overflow-x-auto shrink-0" style="background:var(--surface); border-top:2px solid var(--dot2)">
+            <!-- Populated by JS -->
+        </div>
 
-                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-slate-50 brutal-border rounded-xl p-2 relative">
-                    <label class="p-2 hover:bg-slate-200 rounded-lg cursor-pointer flex items-center justify-center transition-all shrink-0">
-                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500"></i>
-                        <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
-                    </label>
-
-                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-2 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
-                    
-                    <button type="submit" id="submitBtn" class="w-10 h-10 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn flex items-center justify-center shrink-0">
+        <!-- Input area -->
+        <div class="input-zone px-3 md:px-4 py-3 shrink-0 space-y-2">
+            <!-- File preview -->
+            <div id="filePreview" class="hidden text-[10px] text-emerald-600 font-bold px-2 flex items-center gap-1">
+                <i data-lucide="paperclip" class="w-3 h-3"></i>
+                <span id="filePreviewName"></span>
+                <button onclick="removerArquivo()" class="ml-1 text-rose-500 hover:text-rose-700 font-black">✕</button>
+            </div>
+            <!-- Input row -->
+            <div class="flex items-end gap-2 input-field rounded-xl p-2">
+                <!-- Attach -->
+                <label class="p-2 rounded-lg cursor-pointer flex items-center justify-center hover:bg-slate-100 transition-colors shrink-0" title="Anexar arquivo">
+                    <i data-lucide="paperclip" class="w-5 h-5" style="color:var(--text2)"></i>
+                    <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
+                </label>
+                <!-- Textarea auto-grow -->
+                <textarea id="messageInput" rows="1" placeholder="Escreva sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+                    class="flex-1 bg-transparent py-1.5 px-2 text-sm font-medium resize-none focus:outline-none leading-relaxed"
+                    style="color:var(--text); max-height:140px; overflow-y:auto;"
+                    onkeydown="handleKeyDown(event)" oninput="autoGrow(this)"></textarea>
+                <!-- Buttons -->
+                <div class="flex gap-1 shrink-0">
+                    <button type="button" id="submitBtn" onclick="enviarMensagem()"
+                        class="w-10 h-10 bg-slate-900 text-white rounded-xl brutal-btn flex items-center justify-center hover:bg-slate-700 transition-colors"
+                        style="box-shadow:2px 2px 0 #000" title="Enviar">
                         <i data-lucide="send" class="w-4 h-4"></i>
                     </button>
-
-                    <button type="button" id="stopBtn" onclick="pararGeracao()" class="hidden w-10 h-10 bg-rose-600 text-white rounded-lg hover:bg-rose-700 brutal-btn flex items-center justify-center shrink-0" title="Interromper resposta">
+                    <button type="button" id="stopBtn" onclick="pararGeracao()"
+                        class="hidden w-10 h-10 bg-rose-600 text-white rounded-xl brutal-btn flex items-center justify-center hover:bg-rose-700 transition-colors"
+                        style="box-shadow:2px 2px 0 #000" title="Parar geração">
                         <i data-lucide="square" class="w-4 h-4 fill-white"></i>
                     </button>
-                </form>
-                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1.5 px-2 hidden"></div>
+                </div>
+            </div>
+            <div class="flex items-center justify-between px-1">
+                <p class="text-[9px] font-medium" style="color:var(--text2)">Enter envia · Shift+Enter nova linha</p>
+                <span id="charCounter" class="text-[9px] font-bold" style="color:var(--text2)">0 / 2000</span>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        lucide.createIcons();
-        let currentMode = "tutor";
-        let quizData = [];
-        let currentQuizIndex = 0;
-        let quizScore = 0;
-        let currentAbortController = null;
+<script>
+// ===================== INIT =====================
+lucide.createIcons();
+document.getElementById('welcome-ts').textContent = formatTime(new Date());
 
-        function setMode(mode) {
-            currentMode = mode;
-            const btnTutor = document.getElementById("btnTutor");
-            const btnStory = document.getElementById("btnStory");
-            const title = document.getElementById("chatModeTitle");
-            const icon = document.getElementById("headerIcon");
+let currentMode = "tutor";
+let quizData = [], currentQuizIndex = 0, quizScore = 0;
+let currentAbortController = null;
+let sessionMsgCount = 0;
+let lastUserMessage = "";
+let lastAiMessage = "";
+let chatHistory = []; // [{role, text}] for copy history
 
-            if(mode === "tutor") {
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-100 rounded-xl border-2 border-black text-left brutal-btn";
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all";
-                title.innerText = "MODO TUTOR ATIVO";
-                title.className = "text-xs font-black uppercase tracking-widest text-amber-300";
-                icon.setAttribute("data-lucide", "graduation-cap");
-            } else {
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-100 rounded-xl border-2 border-black text-left brutal-btn";
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all";
-                title.innerText = "MODO HISTÓRIA ATIVO";
-                title.className = "text-xs font-black uppercase tracking-widest text-purple-300";
-                icon.setAttribute("data-lucide", "sparkles");
-            }
-            lucide.createIcons();
+// ===================== DARK MODE =====================
+function toggleDarkMode() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const icon = document.querySelector('#darkToggle i');
+    icon.setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+    lucide.createIcons();
+    toast(isDark ? '☀️ Modo claro ativado' : '🌙 Modo escuro ativado');
+}
+
+// ===================== MOBILE DRAWER =====================
+function abrirDrawer() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('drawerOverlay').classList.add('open');
+}
+function fecharDrawer() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+// ===================== CHIPS =====================
+const CHIPS = {
+    tutor: [
+        { label: '📐 Me ajude com Matemática', text: 'Me ajude com Matemática' },
+        { label: '🧪 Explique Fotossíntese', text: 'Explique o que é fotossíntese de forma simples' },
+        { label: '🌍 Curiosidade histórica', text: 'Me conte uma curiosidade histórica interessante' },
+        { label: '✍️ Revise meu texto', text: 'Quero que você revise um texto que vou escrever' },
+    ],
+    story: [
+        { label: '🐉 Uma aventura com dragão', text: 'Conte uma história de aventura com um dragão amigável' },
+        { label: '🚀 Explorador espacial', text: 'Crie uma história sobre uma criança que vira astronauta' },
+        { label: '🌊 Segredo do oceano', text: 'Invente uma história sobre um segredo mágico no fundo do mar' },
+        { label: '🏰 Princesa corajosa', text: 'Conte uma história de uma princesa que salva o reino sozinha' },
+    ]
+};
+
+function renderChips() {
+    const bar = document.getElementById('chipsBar');
+    const chips = CHIPS[currentMode] || CHIPS.tutor;
+    bar.innerHTML = chips.map(c => `
+        <button onclick="usarSugestao('${c.text.replace(/'/g, "\\'")}')"
+            class="chip ${currentMode === 'tutor' ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100' : 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100'}"
+        >${c.label}</button>
+    `).join('');
+}
+renderChips();
+
+// ===================== MODE =====================
+function setMode(mode) {
+    currentMode = mode;
+    const btnT = document.getElementById('btnTutor');
+    const btnS = document.getElementById('btnStory');
+    const title = document.getElementById('chatModeTitle');
+    const icon  = document.getElementById('headerIcon');
+    const stat  = document.getElementById('statMode');
+
+    if (mode === 'tutor') {
+        btnT.className = 'w-full flex items-center gap-3 p-3 rounded-xl mode-btn-active-tutor brutal-btn';
+        btnS.className = 'w-full flex items-center gap-3 p-3 rounded-xl mode-btn-inactive brutal-btn';
+        title.textContent = 'Modo Tutor Ativo';
+        title.className = 'text-xs font-black uppercase tracking-widest text-amber-300';
+        icon.setAttribute('data-lucide', 'graduation-cap');
+        stat.textContent = '📐';
+    } else {
+        btnS.className = 'w-full flex items-center gap-3 p-3 rounded-xl mode-btn-active-story brutal-btn';
+        btnT.className = 'w-full flex items-center gap-3 p-3 rounded-xl mode-btn-inactive brutal-btn';
+        title.textContent = 'Modo História Ativo';
+        title.className = 'text-xs font-black uppercase tracking-widest text-purple-300';
+        icon.setAttribute('data-lucide', 'sparkles');
+        stat.textContent = '✨';
+    }
+    lucide.createIcons();
+    renderChips();
+    toast(mode === 'tutor' ? '📐 Modo Tutor ativado!' : '✨ Modo Histórias ativado!');
+}
+
+// ===================== TEXTAREA AUTO-GROW =====================
+function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    const len = el.value.length;
+    const counter = document.getElementById('charCounter');
+    counter.textContent = `${len} / 2000`;
+    counter.style.color = len > 1800 ? '#ef4444' : len > 1400 ? '#f59e0b' : 'var(--text2)';
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarMensagem();
+    }
+    // Ctrl+Enter também envia
+    if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        enviarMensagem();
+    }
+}
+
+// ===================== FILE =====================
+function atualizarStatusArquivo() {
+    const input = document.getElementById('fileInput');
+    const preview = document.getElementById('filePreview');
+    const name = document.getElementById('filePreviewName');
+    if (input.files.length > 0) {
+        name.textContent = input.files[0].name;
+        preview.classList.remove('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+function removerArquivo() {
+    document.getElementById('fileInput').value = '';
+    atualizarStatusArquivo();
+}
+
+function usarSugestao(texto) {
+    const inp = document.getElementById('messageInput');
+    inp.value = texto;
+    inp.focus();
+    autoGrow(inp);
+}
+
+// ===================== VOICE =====================
+function narrarTexto(textoLimpo) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(textoLimpo);
+    u.lang = 'pt-BR'; u.rate = 1.0;
+    const btn = document.getElementById('btnStopVoice');
+    btn.classList.remove('hidden'); btn.classList.add('flex');
+    u.onend = u.onerror = () => { btn.classList.add('hidden'); btn.classList.remove('flex'); };
+    window.speechSynthesis.speak(u);
+}
+function pararVoz() {
+    window.speechSynthesis.cancel();
+    const btn = document.getElementById('btnStopVoice');
+    btn.classList.add('hidden'); btn.classList.remove('flex');
+}
+
+// ===================== COPY =====================
+function copiarTexto(texto) {
+    navigator.clipboard.writeText(texto).then(() => toast('📋 Copiado!')).catch(() => toast('❌ Falha ao copiar'));
+}
+function copiarHistorico() {
+    if (!chatHistory.length) { toast('💬 Nada para copiar ainda'); return; }
+    const txt = chatHistory.map(m => `[${m.role === 'user' ? 'VOCÊ' : 'GUARDIÃO IA'}]\n${m.text}`).join('\n\n---\n\n');
+    navigator.clipboard.writeText(txt).then(() => toast('📋 Conversa copiada!')).catch(() => toast('❌ Falha ao copiar'));
+}
+
+// ===================== TOAST =====================
+function toast(msg, duration = 2800) {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast toast-enter';
+    el.innerHTML = `<span>${msg}</span>`;
+    container.appendChild(el);
+    setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-8px)';
+        el.style.transition = 'all 0.3s';
+        setTimeout(() => el.remove(), 300);
+    }, duration);
+}
+
+// ===================== TIME =====================
+function formatTime(d) {
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ===================== STOP GENERATION =====================
+function pararGeracao() {
+    if (currentAbortController) currentAbortController.abort();
+}
+
+// ===================== MODALS =====================
+function abrirModal()  { document.getElementById('modalConfirmacao').classList.remove('hidden'); }
+function fecharModal() { document.getElementById('modalConfirmacao').classList.add('hidden'); }
+function fecharQuiz()  { document.getElementById('modalQuiz').classList.add('hidden'); }
+
+// ===================== EXPORT =====================
+function baixarAula() {
+    const userId = document.getElementById('userIdInput').value;
+    window.open(`/api/export/${userId}`, '_blank');
+    toast('⬇️ Baixando aula...');
+}
+
+// ===================== MESSAGES =====================
+function appendMessage(role, text, isError = false) {
+    removeTypingIndicator();
+    const chatBox = document.getElementById('chatBox');
+    const isUser = role === 'user';
+    const now = formatTime(new Date());
+
+    // Track for copy history
+    chatHistory.push({ role, text });
+
+    // Update stats
+    if (isUser) { lastUserMessage = text; sessionMsgCount++; document.getElementById('statMsgs').textContent = sessionMsgCount; }
+    else { lastAiMessage = text; }
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `flex items-start gap-2.5 ${isUser ? 'justify-end' : 'justify-start'} animate-message msg-wrapper`;
+
+    const safeText = text.replace(/`/g, "'").replace(/"/g, '&quot;');
+
+    if (isUser) {
+        const escaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        msgDiv.innerHTML = `
+            <div class="relative bubble-user p-3.5 rounded-2xl brutal-border-sm max-w-[85%] lg:max-w-[70%] text-sm font-medium leading-relaxed">
+                ${escaped}
+                <button onclick="copiarTexto(\`${safeText}\`)" title="Copiar"
+                    class="copy-btn absolute -bottom-3 right-2 bg-white border border-slate-300 text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-all shadow-sm z-10">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                </button>
+                <div class="text-[9px] font-bold mt-2 text-white/40">${now}</div>
+            </div>
+            <div class="p-1.5 rounded-lg border border-black shrink-0 mt-1 text-[10px] font-black" style="background:var(--input-bg);color:var(--text)">EU</div>
+        `;
+    } else {
+        const parsed = isError ? `<p style="color:#b91c1c">${text}</p>` : `<div class="markdown-content">${marked.parse(text)}</div>`;
+        msgDiv.innerHTML = `
+            <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+            </div>
+            <div class="relative bubble-ai p-3.5 rounded-2xl brutal-border-sm max-w-[85%] lg:max-w-[70%] text-sm font-medium leading-relaxed">
+                ${parsed}
+                <button onclick="narrarTexto(\`${safeText}\`)"
+                    class="copy-btn absolute -bottom-3 right-10 bg-white border border-slate-300 text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-all shadow-sm z-10" title="Ouvir">
+                    <i data-lucide="volume-2" class="w-3 h-3"></i>
+                </button>
+                <button onclick="copiarTexto(\`${safeText}\`)" title="Copiar"
+                    class="copy-btn absolute -bottom-3 right-2 bg-white border border-slate-300 text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-all shadow-sm z-10">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                </button>
+                <div class="text-[9px] font-bold mt-2 opacity-40" style="color:var(--text2)">${now}</div>
+            </div>
+        `;
+        // Show regenerate button after AI message
+        const regen = document.getElementById('btnRegenerate');
+        regen.classList.remove('hidden'); regen.classList.add('flex');
+    }
+
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    lucide.createIcons();
+}
+
+function showTypingIndicator() {
+    removeTypingIndicator();
+    const chatBox = document.getElementById('chatBox');
+    const el = document.createElement('div');
+    el.id = 'typingIndicator';
+    el.className = 'flex items-start gap-2.5 animate-message';
+    el.innerHTML = `
+        <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+        </div>
+        <div class="bubble-ai p-4 rounded-2xl brutal-border-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 bg-slate-500 rounded-full typing-dot"></span>
+            <span class="w-2 h-2 bg-slate-500 rounded-full typing-dot"></span>
+            <span class="w-2 h-2 bg-slate-500 rounded-full typing-dot"></span>
+        </div>
+    `;
+    chatBox.appendChild(el);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    lucide.createIcons();
+}
+function removeTypingIndicator() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+}
+
+// ===================== SEND =====================
+async function enviarMensagem() {
+    const msgInput  = document.getElementById('messageInput');
+    const fileInput = document.getElementById('fileInput');
+    const userId    = document.getElementById('userIdInput').value.trim();
+    const message   = msgInput.value.trim();
+
+    if (!message && fileInput.files.length === 0) return;
+    if (!userId) { toast('⚠️ Preencha sua identificação!'); return; }
+
+    appendMessage('user', message || '📎 Arquivo enviado para análise.');
+    msgInput.value = '';
+    autoGrow(msgInput);
+    showTypingIndicator();
+
+    document.getElementById('submitBtn').classList.add('hidden');
+    document.getElementById('stopBtn').classList.remove('hidden');
+    document.getElementById('stopBtn').classList.add('flex');
+
+    currentAbortController = new AbortController();
+
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('message', message || 'Analise o arquivo anexado.');
+    formData.append('mode', currentMode);
+    if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+    fileInput.value = '';
+    atualizarStatusArquivo();
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            body: formData,
+            signal: currentAbortController.signal
+        });
+        if (!res.ok) throw new Error('server_error');
+        const data = await res.json();
+        appendMessage('model', data.response);
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            appendMessage('model', '⛔ Geração interrompida.', true);
+        } else {
+            appendMessage('model', '❌ Erro ao conectar com o servidor. Verifique sua conexão e tente novamente.', true);
         }
+    } finally {
+        document.getElementById('submitBtn').classList.remove('hidden');
+        document.getElementById('stopBtn').classList.add('hidden');
+        document.getElementById('stopBtn').classList.remove('flex');
+        currentAbortController = null;
+    }
+}
 
-        function atualizarStatusArquivo() {
-            const input = document.getElementById("fileInput");
-            const preview = document.getElementById("filePreview");
-            if (input.files.length > 0) {
-                preview.innerText = `📎 Arquivo anexado: ${input.files[0].name}`;
-                preview.classList.remove("hidden");
-            } else {
-                preview.classList.add("hidden");
-            }
-        }
+// ===================== REGENERATE =====================
+async function regenerarUltima() {
+    if (!lastUserMessage) { toast('💬 Nenhuma mensagem para regenerar'); return; }
+    const userId = document.getElementById('userIdInput').value.trim();
+    showTypingIndicator();
+    document.getElementById('btnRegenerate').classList.add('hidden');
 
-        function usarSugestao(texto) {
-            document.getElementById("messageInput").value = texto;
-            document.getElementById("messageInput").focus();
-        }
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('message', lastUserMessage);
+    formData.append('mode', currentMode);
 
-        // GERENCIAMENTO DO PLAYER DE ÁUDIO
-        function narrarTexto(textoLimpo) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(textoLimpo);
-            u.lang = 'pt-BR';
-            u.rate = 1.0;
-            
-            const btnStopVoice = document.getElementById("btnStopVoice");
-            btnStopVoice.classList.remove("hidden");
+    try {
+        const res = await fetch('/api/chat', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        appendMessage('model', data.response);
+        toast('🔁 Resposta regenerada!');
+    } catch {
+        removeTypingIndicator();
+        toast('❌ Falha ao regenerar');
+    }
+}
 
-            u.onend = () => btnStopVoice.classList.add("hidden");
-            u.onerror = () => btnStopVoice.classList.add("hidden");
-
-            window.speechSynthesis.speak(u);
-        }
-
-        function pararVoz() {
-            window.speechSynthesis.cancel();
-            document.getElementById("btnStopVoice").classList.add("hidden");
-        }
-
-        // CANCELAR EMISSÃO DA MENSAGEM HTTP
-        function pararGeracao() {
-            if (currentAbortController) {
-                currentAbortController.abort();
-            }
-        }
-
-        function abrirModal() { document.getElementById("modalConfirmacao").classList.remove("hidden"); }
-        function fecharModal() { document.getElementById("modalConfirmacao").classList.add("hidden"); }
-
-        function baixarAula() {
-            const userId = document.getElementById("userIdInput").value;
-            window.open(`/api/export/${userId}`, '_blank');
-        }
-
-        async function abrirQuiz() {
-            document.getElementById("modalQuiz").classList.remove("hidden");
-            document.getElementById("quizLoading").classList.remove("hidden");
-            document.getElementById("quizContent").classList.add("hidden");
-            const userId = document.getElementById("userIdInput").value;
-
-            try {
-                const res = await fetch("/api/quiz", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ user_id: userId })
-                });
-                if(!res.ok) throw new Error();
-                const data = await res.json();
-                quizData = data.quizzes;
-                currentQuizIndex = 0;
-                quizScore = 0;
-                renderizarQuestaoQuiz();
-            } catch {
-                document.getElementById("quizLoading").innerHTML = "❌ Converse um pouco mais no chat antes de pedir um teste de conhecimento!";
-            }
-        }
-
-        function fecharQuiz() { document.getElementById("modalQuiz").classList.add("hidden"); }
-
-        function renderizarQuestaoQuiz() {
-            document.getElementById("quizLoading").classList.add("hidden");
-            document.getElementById("quizContent").classList.remove("hidden");
-            document.getElementById("btnNextQuiz").classList.add("hidden");
-
-            if(currentQuizIndex >= quizData.length) {
-                document.getElementById("quizProgress").innerText = "Fim do Desafio!";
-                document.getElementById("quizQuestion").innerText = `Parabéns! Você completou o quiz.\nSua pontuação final foi: ${quizScore} de ${quizData.length} acertos!`;
-                document.getElementById("quizOptions").innerHTML = "";
-                return;
-            }
-
-            const q = quizData[currentQuizIndex];
-            document.getElementById("quizProgress").innerText = `Pergunta ${currentQuizIndex + 1} de ${quizData.length}`;
-            document.getElementById("quizQuestion").innerText = q.question;
-            
-            const boxOptions = document.getElementById("quizOptions");
-            boxOptions.innerHTML = "";
-
-            q.options.forEach(opt => {
-                const btn = document.createElement("button");
-                btn.className = "w-full text-left p-3 bg-slate-50 border-2 border-black rounded-xl font-bold text-sm hover:bg-slate-100 transition-all text-slate-800";
-                btn.innerText = opt;
-                btn.onclick = () => checarRespostaQuiz(btn, opt, q.answer);
-                boxOptions.appendChild(btn);
-            });
-        }
-
-        function checarRespostaQuiz(elementoClicado, opcaoTexto, respostaCorreta) {
-            const letraEscolhida = opcaoTexto.trim().charAt(0).toUpperCase();
-            const botoes = document.getElementById("quizOptions").querySelectorAll("button");
-            
-            botoes.forEach(b => b.disabled = true);
-
-            if(letraEscolhida === respostaCorreta.toUpperCase()) {
-                elementoClicado.className = "w-full text-left p-3 bg-emerald-400 border-2 border-black rounded-xl font-black text-sm text-black";
-                quizScore++;
-            } else {
-                elementoClicado.className = "w-full text-left p-3 bg-rose-400 border-2 border-black rounded-xl font-black text-sm text-black";
-                botoes.forEach(b => {
-                    if(b.innerText.trim().charAt(0).toUpperCase() === respostaCorreta.toUpperCase()) {
-                        b.className = "w-full text-left p-3 bg-emerald-200 border-2 border-black rounded-xl font-black text-sm text-black";
-                    }
-                });
-            }
-            document.getElementById("btnNextQuiz").classList.remove("hidden");
-        }
-
-        function proximaQuestao() {
-            currentQuizIndex++;
-            renderizarQuestaoQuiz();
-        }
-
-        // IMPRESSÃO DE BALÕES - FORMATO COMPACTO INTELIGENTE COM ALINHAMENTOS REAIS
-        function appendMessage(role, text) {
-            removeTypingIndicator();
-            const chatBox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = `flex items-start gap-2 md:gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
-
-            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
-            const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shrink-0 mt-1">ME</div>`;
-
-            let textoTratado = text;
-            if (role === 'user' && text.length > 0) {
-                textoTratado = text.charAt(0).toUpperCase() + text.slice(1);
-            }
-
-            const conteudoFinal = role === 'model' ? `<div class="markdown-content">${marked.parse(textoTratado)}</div>` : textoTratado;
-            const btnAudio = role === 'model' ? `<button onclick="narrarTexto(\`${textoTratado.replace(/`/g, "'").replace(/"/g, '&quot;')}\`)" class="absolute -bottom-3 right-4 bg-white border border-black text-slate-800 rounded-full p-1 hover:bg-slate-100 transition-all shadow-[1px_1px_0px_#000] z-10" title="Ouvir resposta"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i></button>` : '';
-
-            msgDiv.innerHTML = `
-                ${role === 'model' ? botIcon : ''}
-                <div class="${role === 'user' ? 'bg-slate-800 text-white ml-auto' : 'bg-white text-black mr-auto'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-[70%] w-fit break-words text-sm font-medium shadow-[3px_3px_0px_#000] leading-relaxed relative">
-                    ${conteudoFinal}
-                    ${btnAudio}
+// ===================== CLEAR =====================
+async function confirmarLimpeza() {
+    fecharModal();
+    const userId = document.getElementById('userIdInput').value;
+    try {
+        const res = await fetch('/api/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+            document.getElementById('chatBox').innerHTML = `
+                <div class="flex items-start gap-2.5 justify-start animate-message">
+                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                    <div class="bubble-ai p-3.5 rounded-2xl brutal-border-sm text-sm font-medium">Histórico limpo! Como posso te ajudar? 😊</div>
                 </div>
-                ${role === 'user' ? userTag : ''}
             `;
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
             lucide.createIcons();
+            sessionMsgCount = 0;
+            document.getElementById('statMsgs').textContent = '0';
+            chatHistory = [];
+            lastUserMessage = '';
+            lastAiMessage = '';
+            document.getElementById('btnRegenerate').classList.add('hidden');
+            toast('🗑️ Histórico apagado!');
         }
+    } catch {
+        toast('❌ Erro ao limpar histórico');
+    }
+}
 
-        function showTypingIndicator() {
-            removeTypingIndicator();
-            const chatBox = document.getElementById("chatBox");
-            const indicatorDiv = document.createElement("div");
-            indicatorDiv.id = "typingIndicator";
-            indicatorDiv.className = "flex items-start gap-3 animate-message";
-            indicatorDiv.innerHTML = `
-                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[3px_3px_0px_#000] w-fit mr-auto">
-                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse"></span>
-                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-75"></span>
-                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-150"></span>
-                </div>
-            `;
-            chatBox.appendChild(indicatorDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            lucide.createIcons();
-        }
+// ===================== QUIZ =====================
+async function abrirQuiz() {
+    document.getElementById('modalQuiz').classList.remove('hidden');
+    document.getElementById('quizLoading').classList.remove('hidden');
+    document.getElementById('quizLoading').innerHTML = '<div class="text-3xl mb-3 animate-bounce">🤔</div>Analisando nossa conversa e preparando perguntas...';
+    document.getElementById('quizContent').classList.add('hidden');
+    const userId = document.getElementById('userIdInput').value;
 
-        function removeTypingIndicator() {
-            const indicator = document.getElementById("typingIndicator");
-            if (indicator) indicator.remove();
-        }
+    try {
+        const res = await fetch('/api/quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        quizData = data.quizzes;
+        currentQuizIndex = 0; quizScore = 0;
+        renderizarQuestaoQuiz();
+    } catch {
+        document.getElementById('quizLoading').innerHTML = '❌ Converse um pouco mais antes de gerar um desafio!';
+    }
+}
 
-        function appendError(text) {
-            removeTypingIndicator();
-            const chatBox = document.getElementById("chatBox");
-            const errorDiv = document.createElement("div");
-            errorDiv.className = "flex items-start gap-3 animate-message";
-            errorDiv.innerHTML = `
-                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-rose-50 text-rose-800 p-3 rounded-2xl border-2 border-rose-400 max-w-[85%] text-sm font-bold shadow-[3px_3px_0px_#000] w-fit mr-auto">${text}</div>
-            `;
-            chatBox.appendChild(errorDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            lucide.createIcons();
-        }
+function renderizarQuestaoQuiz() {
+    document.getElementById('quizLoading').classList.add('hidden');
+    document.getElementById('quizContent').classList.remove('hidden');
+    document.getElementById('btnNextQuiz').classList.add('hidden');
+    document.getElementById('quizScoreBadge').textContent = `✅ ${quizScore} acertos`;
 
-        async function enviarMensagem(event) {
-            event.preventDefault();
-            const msgInput = document.getElementById("messageInput");
-            const fileInput = document.getElementById("fileInput");
-            const userId = document.getElementById("userIdInput").value;
-            const message = msgInput.value.trim();
+    if (currentQuizIndex >= quizData.length) {
+        const pct = Math.round((quizScore / quizData.length) * 100);
+        const emoji = pct >= 70 ? '🏆' : pct >= 40 ? '📚' : '💪';
+        document.getElementById('quizProgress').textContent = 'Fim do Desafio!';
+        document.getElementById('quizQuestion').innerHTML = `
+            <div class="text-4xl text-center mb-2">${emoji}</div>
+            <div class="text-center">Parabéns! Você completou o quiz.<br>
+            <span class="text-2xl font-black">${quizScore}/${quizData.length}</span> acertos (${pct}%)</div>
+        `;
+        document.getElementById('quizOptions').innerHTML = '';
+        return;
+    }
 
-            if (!message && fileInput.files.length === 0) return;
+    const q = quizData[currentQuizIndex];
+    document.getElementById('quizProgress').textContent = `Pergunta ${currentQuizIndex + 1} de ${quizData.length}`;
+    document.getElementById('quizQuestion').textContent = q.question;
 
-            appendMessage("user", message || "📁 Enviou um arquivo para análise.");
-            msgInput.value = "";
-            showTypingIndicator();
+    const box = document.getElementById('quizOptions');
+    box.innerHTML = '';
+    q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3 rounded-xl border-2 font-bold text-sm brutal-btn transition-all';
+        btn.style.cssText = `background:var(--input-bg);border-color:var(--border);color:var(--text)`;
+        btn.textContent = opt;
+        btn.onclick = () => checarRespostaQuiz(btn, opt, q.answer);
+        box.appendChild(btn);
+    });
+}
 
-            // Ativa botão stop (quadradinho vermelho)
-            document.getElementById("submitBtn").classList.add("hidden");
-            document.getElementById("stopBtn").classList.remove("hidden");
-
-            currentAbortController = new AbortController();
-
-            const formData = new FormData();
-            formData.append("user_id", userId);
-            formData.append("message", message || "Analise o arquivo anexado.");
-            formData.append("mode", currentMode);
-            if (fileInput.files[0]) {
-                formData.append("file", fileInput.files[0]);
+function checarRespostaQuiz(el, opt, answer) {
+    const letra = opt.trim().charAt(0).toUpperCase();
+    document.querySelectorAll('#quizOptions button').forEach(b => b.disabled = true);
+    if (letra === answer.toUpperCase()) {
+        el.style.background = '#bbf7d0'; el.style.borderColor = '#000'; el.style.color = '#000';
+        el.textContent = '✅ ' + el.textContent;
+        quizScore++;
+    } else {
+        el.style.background = '#fecaca'; el.style.borderColor = '#000'; el.style.color = '#000';
+        el.textContent = '❌ ' + el.textContent;
+        document.querySelectorAll('#quizOptions button').forEach(b => {
+            if (b.textContent.trim().charAt(1).toUpperCase() === answer.toUpperCase() ||
+                b.textContent.trim().charAt(0).toUpperCase() === answer.toUpperCase()) {
+                b.style.background = '#bbf7d0'; b.style.borderColor = '#000'; b.style.color = '#000';
             }
+        });
+    }
+    document.getElementById('quizScoreBadge').textContent = `✅ ${quizScore} acertos`;
+    document.getElementById('btnNextQuiz').classList.remove('hidden');
+}
 
-            fileInput.value = "";
-            atualizarStatusArquivo();
-
-            try {
-                const response = await fetch("/api/chat", { 
-                    method: "POST", 
-                    body: formData,
-                    signal: currentAbortController.signal 
-                });
-                if (!response.ok) throw new Error();
-                const data = await response.json();
-                appendMessage("model", data.response);
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    appendError("Geração interrompida por você.");
-                } else {
-                    appendError("Desculpe, ocorreu um erro ao tentar conectar com o servidor. Verifique sua conexão e tente novamente.");
-                }
-            } finally {
-                document.getElementById("submitBtn").classList.remove("hidden");
-                document.getElementById("stopBtn").classList.add("hidden");
-                currentAbortController = null;
-            }
-        }
-
-        async function confirmarLimpeza() {
-            fecharModal();
-            const userId = document.getElementById("userIdInput").value;
-            try {
-                const res = await fetch("/api/clear", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId })
-                });
-                if (res.ok) {
-                    document.getElementById("chatBox").innerHTML = `
-                        <div class="flex items-start gap-3 animate-message">
-                            <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                            <div class="bg-white p-3 rounded-2xl border-2 border-black text-sm font-medium w-fit mr-auto">Histórico limpo! Como posso te ajudar?</div>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                }
-            } catch (err) {
-                alert("Erro ao limpar histórico.");
-            }
-        }
-    </script>
+function proximaQuestao() { currentQuizIndex++; renderizarQuestaoQuiz(); }
+</script>
 </body>
 </html>
