@@ -7,51 +7,62 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /* Padrão de fundo neo-brutalista */
         body { 
             font-family: 'Space Grotesk', sans-serif; 
             background-color: #f0f4f8; 
             background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
             background-size: 24px 24px;
         }
-        
         .brutal-border { border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
         .brutal-btn { transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .brutal-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0px #000000; }
-        
-        /* Scrollbar customizada e moderna */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-left: 2px solid #000; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; border-radius: 0px; }
-
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; }
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .animate-message { animation: fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-
-        @keyframes dotPulse {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-        }
-        .typing-dot { animation: dotPulse 0.8s infinite ease-in-out; }
-        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+        
+        /* Estilização para as respostas em Markdown */
+        .markdown-content p { margin-bottom: 0.75rem; }
+        .markdown-content strong { font-weight: 700; color: #000; }
+        .markdown-content ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.75rem; }
+        .markdown-content ol { list-style-type: decimal; margin-left: 1.25rem; margin-bottom: 0.75rem; }
+        .markdown-content h3 { font-size: 1.1rem; font-weight: 900; margin-top: 1rem; margin-bottom: 0.5rem; text-transform: uppercase; }
+        .markdown-content code { background-color: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-weight: bold; }
     </style>
 </head>
 <body class="p-4 md:p-6 relative">
 
     <div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl brutal-border max-w-sm w-full animate-message text-center">
-            <div class="w-12 h-12 bg-rose-100 border-2 border-black rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
-                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-            </div>
             <h3 class="text-lg font-black mb-2">Apagar histórico?</h3>
-            <p class="text-sm text-slate-700 font-medium mb-6">Essa ação não pode ser desfeita e todas as mensagens sumirão.</p>
+            <p class="text-sm text-slate-700 font-medium mb-6">Todas as mensagens atuais sumirão de forma permanente.</p>
             <div class="flex gap-3">
-                <button onclick="fecharModal()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 border-2 border-black font-bold rounded-xl brutal-btn">Cancelar</button>
-                <button onclick="confirmarLimpeza()" class="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white border-2 border-black font-bold rounded-xl brutal-btn">Apagar Tudo</button>
+                <button onclick="fecharModal()" class="flex-1 py-2 bg-slate-100 border-2 border-black font-bold rounded-xl brutal-btn">Cancelar</button>
+                <button onclick="confirmarLimpeza()" class="flex-1 py-2 bg-rose-500 text-white border-2 border-black font-bold rounded-xl brutal-btn">Apagar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalQuiz" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-2xl brutal-border max-w-lg w-full animate-message">
+            <div class="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
+                <h3 class="text-xl font-black flex items-center gap-2">🧠 Desafio de Conhecimento</h3>
+                <button onclick="fecharQuiz()" class="text-black font-bold border-2 border-black px-2 rounded-lg hover:bg-slate-100">X</button>
+            </div>
+            <div id="quizLoading" class="text-center py-8 font-bold text-slate-700">
+                <div class="animate-bounce mb-2">🤔</div> Analisando nossa conversa e preparando perguntas...
+            </div>
+            <div id="quizContent" class="hidden space-y-4">
+                <div class="text-xs bg-slate-900 text-amber-300 font-black px-2 py-1 rounded w-fit uppercase" id="quizProgress">Pergunta 1 de 3</div>
+                <h4 id="quizQuestion" class="text-base font-black leading-tight text-slate-900"></h4>
+                <div id="quizOptions" class="space-y-2.5"></div>
+                <button id="btnNextQuiz" onclick="proximaQuestao()" class="hidden w-full py-2.5 bg-black text-white font-bold rounded-xl brutal-btn text-center mt-4">Avançar Proxima ➔</button>
             </div>
         </div>
     </div>
@@ -59,57 +70,45 @@
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         <div class="lg:col-span-1 bg-white p-4 rounded-2xl brutal-border flex flex-col h-fit lg:h-[calc(100vh-50px)]">
-            
             <div class="flex items-center gap-3 mb-6 shrink-0">
-                <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black">
-                    <i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i>
-                </div>
+                <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black"><i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i></div>
                 <div>
                     <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
-                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
-                    </span>
+                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">ONLINE</span>
                 </div>
             </div>
 
             <div class="space-y-5 shrink-0">
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Identificação</label>
-                    <div class="relative group">
-                        <i data-lucide="user-circle" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-black transition-colors"></i>
-                        <input type="text" id="userIdInput" value="jovem_estudante_1" title="Altere seu ID para iniciar um novo chat" class="w-full pl-9 pr-3 py-2 bg-slate-100 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:shadow-[2px_2px_0px_#000] transition-all cursor-text">
-                    </div>
+                    <input type="text" id="userIdInput" value="jovem_estudante_1" class="w-full h-10 pl-3 pr-3 bg-slate-100 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-white transition-all">
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Modo de IA</label>
                     <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-100 rounded-xl border-2 border-black text-left brutal-btn">
                         <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-700"></i>
-                        <div>
-                            <div class="text-xs font-bold text-slate-900">Tutor Escolar</div>
-                            <div class="text-[10px] font-medium text-slate-700">Respostas e auxílio didático</div>
-                        </div>
+                        <div><div class="text-xs font-bold">Tutor Escolar</div><div class="text-[10px] font-medium text-slate-700">Didático e Direto</div></div>
                     </button>
                     <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all">
                         <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
-                        <div>
-                            <div class="text-xs font-bold text-slate-900">Contar Histórias</div>
-                            <div class="text-[10px] font-medium text-slate-700">Contos mágicos e seguros</div>
-                        </div>
+                        <div><div class="text-xs font-bold">Contar Histórias</div><div class="text-[10px] font-medium text-slate-700">Contos lúdicos mágicos</div></div>
                     </button>
                 </div>
+
+                <button onclick="abrirQuiz()" class="w-full py-3 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border-2 border-black rounded-xl font-black text-xs flex items-center justify-center gap-2 brutal-btn">
+                    <i data-lucide="brain-circuit" class="w-4 h-4"></i> GERAR DESAFIO (QUIZ)
+                </button>
             </div>
 
-            <div class="mt-6 flex-1 overflow-y-auto pr-2 custom-scrollbar hidden lg:block">
-                <h3 class="text-[10px] font-black uppercase text-slate-600 tracking-wider mb-3">Conversas Recentes</h3>
-                <div class="space-y-2">
-                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">📐 Dúvida de Álgebra e Frações</button>
-                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">📜 A Revolução Francesa</button>
-                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">🌍 O que é gravidade?</button>
-                </div>
+            <div class="mt-6 flex-1 overflow-y-auto pr-2 custom-scrollbar hidden lg:block border-t border-slate-200 pt-4">
+                <h3 class="text-[10px] font-black uppercase text-slate-600 tracking-wider mb-3">Ações da Sessão</h3>
+                <button onclick="baixarAula()" class="w-full text-left text-xs font-bold text-slate-700 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border-2 border-black mb-2 transition-all flex items-center gap-2">
+                    <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-600"></i> Salvar Aula (.TXT)
+                </button>
             </div>
 
-            <button onclick="abrirModal()" class="w-full mt-6 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all shrink-0">
+            <button onclick="abrirModal()" class="w-full mt-auto py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all shrink-0">
                 <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar Histórico
             </button>
         </div>
@@ -121,43 +120,43 @@
             </div>
 
             <div id="chatBox" class="flex-1 p-5 overflow-y-auto space-y-6 bg-slate-50 custom-scrollbar scroll-smooth">
-                <div class="flex items-start gap-3 animate-message">
-                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                    <div class="bg-white p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed">
+                <div class="flex items-start gap-3安全 animate-message">
+                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                    <div class="bg-white p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] relative">
                         Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 md:p-5 bg-white border-t-4 border-black space-y-3 shrink-0">
-                
+            <div class="p-4 bg-white border-t-4 border-black space-y-3 shrink-0">
                 <div class="flex flex-wrap gap-2 items-center">
-                    <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-bold rounded-full border-2 border-blue-300 transition-transform hover:scale-105 active:scale-95">Me ajude com Matemática 📐</button>
-                    <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold rounded-full border-2 border-purple-300 transition-transform hover:scale-105 active:scale-95">Curiosidade histórica 📜</button>
-                    <button onclick="usarSugestao('Explique o que é a gravidade')" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-full border-2 border-amber-300 transition-transform hover:scale-105 active:scale-95">O que é gravidade? 🌍</button>
+                    <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-full border-2 border-blue-300 transition-transform hover:scale-105">Me ajude com Matemática 📐</button>
+                    <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1.5 bg-purple-100 text-purple-800 text-xs font-bold rounded-full border-2 border-purple-300 transition-transform hover:scale-105">Curiosidade histórica 📜</button>
                 </div>
 
-                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-slate-50 brutal-border rounded-xl p-2 relative focus-within:bg-white transition-colors">
-                    <label class="p-2 hover:bg-slate-200 rounded-lg cursor-pointer flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0">
-                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500 transition-transform duration-300"></i>
+                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-slate-50 brutal-border rounded-xl p-2 relative">
+                    <label class="p-2 hover:bg-slate-200 rounded-lg cursor-pointer flex items-center justify-center transition-all shrink-0">
+                        <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500"></i>
                         <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
                     </label>
 
-                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-3 pr-2 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
+                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-3 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
                     
                     <button type="submit" class="w-10 h-10 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn flex items-center justify-center shrink-0">
-                        <i data-lucide="send" class="w-4 h-4 translate-x-[1px]"></i>
+                        <i data-lucide="send" class="w-4 h-4"></i>
                     </button>
                 </form>
-                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1.5 px-2 hidden animate-pulse"></div>
+                <div id="filePreview" class="text-[10px] text-emerald-600 font-bold mt-1.5 px-2 hidden"></div>
             </div>
         </div>
-
     </div>
 
     <script>
         lucide.createIcons();
         let currentMode = "tutor";
+        let quizData = [];
+        let currentQuizIndex = 0;
+        let quizScore = 0;
 
         function setMode(mode) {
             currentMode = mode;
@@ -172,14 +171,12 @@
                 title.innerText = "MODO TUTOR ATIVO";
                 title.className = "text-xs font-black uppercase tracking-widest text-amber-300";
                 icon.setAttribute("data-lucide", "graduation-cap");
-                icon.className = "w-5 h-5 text-amber-300";
             } else {
                 btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-100 rounded-xl border-2 border-black text-left brutal-btn";
                 btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all";
                 title.innerText = "MODO HISTÓRIA ATIVO";
                 title.className = "text-xs font-black uppercase tracking-widest text-purple-300";
                 icon.setAttribute("data-lucide", "sparkles");
-                icon.className = "w-5 h-5 text-purple-300";
             }
             lucide.createIcons();
         }
@@ -187,14 +184,11 @@
         function atualizarStatusArquivo() {
             const input = document.getElementById("fileInput");
             const preview = document.getElementById("filePreview");
-            const icon = document.getElementById("clipIcon");
             if (input.files.length > 0) {
-                preview.innerText = ` 📎 Arquivo anexado: ${input.files[0].name}`;
+                preview.innerText = `📎 Arquivo anexado: ${input.files[0].name}`;
                 preview.classList.remove("hidden");
-                icon.classList.add("rotate-45", "text-emerald-600");
             } else {
                 preview.classList.add("hidden");
-                icon.classList.remove("rotate-45", "text-emerald-600");
             }
         }
 
@@ -203,29 +197,130 @@
             document.getElementById("messageInput").focus();
         }
 
+        // NOVO: TEXT-TO-SPEECH (FALAR EM VOZ ALTA)
+        function narrarTexto(textoLimpo) {
+            window.speechSynthesis.cancel(); // Para narrações anteriores
+            const u = new SpeechSynthesisUtterance(textoLimpo);
+            u.lang = 'pt-BR';
+            u.rate = 1.0;
+            window.speechSynthesis.speak(u);
+        }
+
         function abrirModal() { document.getElementById("modalConfirmacao").classList.remove("hidden"); }
         function fecharModal() { document.getElementById("modalConfirmacao").classList.add("hidden"); }
 
+        // ADIÇÃO DE EXPORTAÇÃO (.TXT)
+        function baixarAula() {
+            const userId = document.getElementById("userIdInput").value;
+            window.open(`/api/export/${userId}`, '_blank');
+        }
+
+        // SISTEMA DO QUIZ COMPLETAMENTE INTERATIVO
+        async abrirQuiz() {
+            document.getElementById("modalQuiz").classList.remove("hidden");
+            document.getElementById("quizLoading").classList.remove("hidden");
+            document.getElementById("quizContent").classList.add("hidden");
+            const userId = document.getElementById("userIdInput").value;
+
+            try {
+                const res = await fetch("/api/quiz", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ user_id: userId })
+                });
+                if(!res.ok) throw new Error();
+                const data = await res.json();
+                quizData = data.quizzes;
+                currentQuizIndex = 0;
+                quizScore = 0;
+                renderizarQuestaoQuiz();
+            } catch {
+                document.getElementById("quizLoading").innerHTML = "❌ Converse um pouco mais no chat antes de pedir um teste de conhecimento!";
+            }
+        }
+
+        function fecharQuiz() { document.getElementById("modalQuiz").classList.add("hidden"); }
+
+        function renderizarQuestaoQuiz() {
+            document.getElementById("quizLoading").classList.add("hidden");
+            document.getElementById("quizContent").classList.remove("hidden");
+            document.getElementById("btnNextQuiz").classList.add("hidden");
+
+            if(currentQuizIndex >= quizData.length) {
+                document.getElementById("quizProgress").innerText = "Fim do Desafio!";
+                document.getElementById("quizQuestion").innerText = `Parabéns! Você completou o quiz.\nSua pontuação final foi: ${quizScore} de ${quizData.length} acertos!`;
+                document.getElementById("quizOptions").innerHTML = "";
+                return;
+            }
+
+            const q = quizData[currentQuizIndex];
+            document.getElementById("quizProgress").innerText = `Pergunta ${currentQuizIndex + 1} de ${quizData.length}`;
+            document.getElementById("quizQuestion").innerText = q.question;
+            
+            const boxOptions = document.getElementById("quizOptions");
+            boxOptions.innerHTML = "";
+
+            q.options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "w-full text-left p-3 bg-slate-50 border-2 border-black rounded-xl font-bold text-sm hover:bg-slate-100 transition-all text-slate-800";
+                btn.innerText = opt;
+                btn.onclick = () => checarRespostaQuiz(btn, opt, q.answer);
+                boxOptions.appendChild(btn);
+            });
+        }
+
+        function checarRespostaQuiz(elementoClicado, opcaoTexto, respostaCorreta) {
+            const letraEscolhida = opcaoTexto.trim().charAt(0).toUpperCase();
+            const botoes = document.getElementById("quizOptions").querySelectorAll("button");
+            
+            botoes.forEach(b => b.disabled = true); // Bloqueia cliques adicionais
+
+            if(letraEscolhida === respostaCorreta.toUpperCase()) {
+                elementoClicado.className = "w-full text-left p-3 bg-emerald-400 border-2 border-black rounded-xl font-black text-sm text-black";
+                quizScore++;
+            } else {
+                elementoClicado.className = "w-full text-left p-3 bg-rose-400 border-2 border-black rounded-xl font-black text-sm text-black";
+                // Destaca a correta
+                botoes.forEach(b => {
+                    if(b.innerText.trim().charAt(0).toUpperCase() === respostaCorreta.toUpperCase()) {
+                        b.className = "w-full text-left p-3 bg-emerald-200 border-2 border-black rounded-xl font-black text-sm text-black";
+                    }
+                });
+            }
+            document.getElementById("btnNextQuiz").classList.remove("hidden");
+        }
+
+        function proximaQuestao() {
+            currentQuizIndex++;
+            renderizarQuestaoQuiz();
+        }
+
+        // APPEND DE MENSAGENS COM SUPORTE A MARKDOWN E TEXT-TO-SPEECH
         function appendMessage(role, text) {
             removeTypingIndicator();
             const chatBox = document.getElementById("chatBox");
             const msgDiv = document.createElement("div");
-            
-            // max-w-2xl no balão
             msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
 
-            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
-            const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1">ME</div>`;
+            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
+            const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shrink-0 mt-1">ME</div>`;
 
             let textoTratado = text;
             if (role === 'user' && text.length > 0) {
                 textoTratado = text.charAt(0).toUpperCase() + text.slice(1);
             }
 
+            // Se for a IA, processa o Markdown
+            const conteudoFinal = role === 'model' ? `<div class="markdown-content">${marked.parse(textoTratado)}</div>` : textoTratado;
+            
+            // Botão de Áudio adicionado nos balões da IA
+            const btnAudio = role === 'model' ? `<button onclick="narrarTexto(\`${textoTratado.replace(/`/g, "'")}\`)" class="absolute -bottom-3 right-4 bg-white border border-black text-slate-800 rounded-full p-1 hover:bg-slate-100 transition-all shadow-[1px_1px_0px_#000] z-10" title="Ouvir resposta"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i></button>` : '';
+
             msgDiv.innerHTML = `
                 ${role === 'model' ? botIcon : ''}
-                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000] leading-relaxed">
-                    ${textoTratado}
+                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000] leading-relaxed relative">
+                    ${conteudoFinal}
+                    ${btnAudio}
                 </div>
                 ${role === 'user' ? userTag : ''}
             `;
@@ -243,9 +338,9 @@
             indicatorDiv.innerHTML = `
                 <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
                 <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[2px_2px_0px_#000]">
-                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
-                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
-                    <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
+                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse"></span>
+                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-75"></span>
+                    <span class="w-2 h-2 bg-slate-600 rounded-full animate-pulse delay-150"></span>
                 </div>
             `;
             chatBox.appendChild(indicatorDiv);
@@ -265,9 +360,7 @@
             errorDiv.className = "flex items-start gap-3 animate-message";
             errorDiv.innerHTML = `
                 <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-rose-50 text-rose-800 p-3 md:p-4 rounded-2xl border-2 border-rose-400 max-w-[85%] lg:max-w-2xl text-sm font-bold shadow-[2px_2px_0px_#000] leading-relaxed">
-                    ${text}
-                </div>
+                <div class="bg-rose-50 text-rose-800 p-3 rounded-2xl border-2 border-rose-400 max-w-[85%] text-sm font-bold shadow-[2px_2px_0px_#000]">${text}</div>
             `;
             chatBox.appendChild(errorDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -300,18 +393,11 @@
 
             try {
                 const response = await fetch("/api/chat", { method: "POST", body: formData });
-                
-                if (response.status === 429) {
-                    appendError("Limite de cota atingido temporariamente. Aguarde 1-2 minutos.");
-                    return;
-                }
-
                 if (!response.ok) throw new Error();
-
                 const data = await response.json();
                 appendMessage("model", data.response);
             } catch (err) {
-                appendError("Ocorreu um erro de conexão com o servidor. Tente novamente.");
+                appendError("Erro ao se conectar ao servidor. Tente novamente.");
             }
         }
 
@@ -328,7 +414,7 @@
                     document.getElementById("chatBox").innerHTML = `
                         <div class="flex items-start gap-3 animate-message">
                             <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                            <div class="bg-white p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed">Histórico apagado com sucesso! Como posso ajudar?</div>
+                            <div class="bg-white p-3 rounded-2xl border-2 border-black text-sm font-medium">Histórico limpo! Como posso te ajudar?</div>
                         </div>
                     `;
                     lucide.createIcons();
