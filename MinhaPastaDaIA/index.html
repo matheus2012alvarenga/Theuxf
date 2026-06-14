@@ -5,17 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guardião IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Space Grotesk', sans-serif; background-color: #f0f4f8; }
+        /* Padrão de fundo neo-brutalista */
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            background-color: #f0f4f8; 
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
         
-        /* Estilos Estritos do Design Brutalista */
         .brutal-border { border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
-        .brutal-btn { transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .brutal-btn { transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .brutal-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0px #000000; }
         
-        /* Animações de Entrada */
+        /* Scrollbar customizada e moderna */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-left: 2px solid #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #000; border-radius: 0px; }
+
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(12px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -33,13 +42,13 @@
 </head>
 <body class="p-4 md:p-6 relative">
 
-    <div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalConfirmacao" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl brutal-border max-w-sm w-full animate-message text-center">
             <div class="w-12 h-12 bg-rose-100 border-2 border-black rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
                 <i data-lucide="alert-triangle" class="w-6 h-6"></i>
             </div>
             <h3 class="text-lg font-black mb-2">Apagar histórico?</h3>
-            <p class="text-sm text-slate-600 font-medium mb-6">Essa ação não pode ser desfeita e todas as mensagens atuais sumirão.</p>
+            <p class="text-sm text-slate-700 font-medium mb-6">Essa ação não pode ser desfeita e todas as mensagens sumirão.</p>
             <div class="flex gap-3">
                 <button onclick="fecharModal()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 border-2 border-black font-bold rounded-xl brutal-btn">Cancelar</button>
                 <button onclick="confirmarLimpeza()" class="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white border-2 border-black font-bold rounded-xl brutal-btn">Apagar Tudo</button>
@@ -49,84 +58,92 @@
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        <div class="lg:col-span-1 bg-white p-4 rounded-2xl brutal-border flex flex-col justify-between h-fit lg:h-[calc(100vh-50px)]">
-            <div>
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black">
-                        <i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
-                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
-                        </span>
-                    </div>
+        <div class="lg:col-span-1 bg-white p-4 rounded-2xl brutal-border flex flex-col h-fit lg:h-[calc(100vh-50px)]">
+            
+            <div class="flex items-center gap-3 mb-6 shrink-0">
+                <div class="p-2 bg-emerald-100 rounded-xl border-2 border-black">
+                    <i data-lucide="shield" class="w-6 h-6 text-emerald-600"></i>
                 </div>
-
-                <div class="space-y-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ID do Usuário</label>
-                        <div class="relative">
-                            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" id="userIdInput" value="jovem_estudante_1" class="w-full pl-9 pr-3 py-2 bg-slate-50 brutal-border rounded-xl text-xs font-bold focus:outline-none">
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Assistente</label>
-                        <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border transition-colors hover:bg-amber-100/50">
-                            <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-600"></i>
-                            <div>
-                                <div class="text-xs font-bold">Tutor Escolar</div>
-                                <div class="text-[10px] text-slate-500">Respostas e auxílio didático</div>
-                            </div>
-                        </button>
-                        <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all">
-                            <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
-                            <div>
-                                <div class="text-xs font-bold">Contar Histórias</div>
-                                <div class="text-[10px] text-slate-500">Contos mágicos e seguros</div>
-                            </div>
-                        </button>
-                    </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight">Guardião IA</h1>
+                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
+                    </span>
                 </div>
             </div>
 
-            <button onclick="abrirModal()" class="w-full mt-6 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all">
+            <div class="space-y-5 shrink-0">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Identificação</label>
+                    <div class="relative group">
+                        <i data-lucide="user-circle" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-black transition-colors"></i>
+                        <input type="text" id="userIdInput" value="jovem_estudante_1" title="Altere seu ID para iniciar um novo chat" class="w-full pl-9 pr-3 py-2 bg-slate-100 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:shadow-[2px_2px_0px_#000] transition-all cursor-text">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-600 tracking-wider">Modo de IA</label>
+                    <button id="btnTutor" onclick="setMode('tutor')" class="w-full flex items-center gap-3 p-3 bg-amber-100 rounded-xl border-2 border-black text-left brutal-btn">
+                        <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-700"></i>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">Tutor Escolar</div>
+                            <div class="text-[10px] font-medium text-slate-700">Respostas e auxílio didático</div>
+                        </div>
+                    </button>
+                    <button id="btnStory" onclick="setMode('story')" class="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">Contar Histórias</div>
+                            <div class="text-[10px] font-medium text-slate-700">Contos mágicos e seguros</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 flex-1 overflow-y-auto pr-2 custom-scrollbar hidden lg:block">
+                <h3 class="text-[10px] font-black uppercase text-slate-600 tracking-wider mb-3">Conversas Recentes</h3>
+                <div class="space-y-2">
+                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">📐 Dúvida de Álgebra e Frações</button>
+                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">📜 A Revolução Francesa</button>
+                    <button class="w-full text-left text-xs font-bold text-slate-700 p-2 hover:bg-slate-100 rounded-lg border-2 border-transparent hover:border-black transition-all truncate">🌍 O que é gravidade?</button>
+                </div>
+            </div>
+
+            <button onclick="abrirModal()" class="w-full mt-6 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border-2 border-rose-300 flex items-center justify-center gap-2 transition-all shrink-0">
                 <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar Histórico
             </button>
         </div>
 
         <div class="lg:col-span-3 flex flex-col justify-between bg-white rounded-2xl brutal-border h-[calc(100vh-50px)] overflow-hidden">
-            <div class="bg-slate-900 text-white p-3.5 px-4 flex items-center gap-2 border-b-4 border-black">
-                <i id="headerIcon" data-lucide="graduation-cap" class="w-5 h-5 text-amber-400"></i>
-                <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-400">MODO TUTOR ATIVO</span>
+            <div class="bg-slate-900 text-white p-3.5 px-5 flex items-center gap-2 border-b-4 border-black shrink-0">
+                <i id="headerIcon" data-lucide="graduation-cap" class="w-5 h-5 text-amber-300"></i>
+                <span id="chatModeTitle" class="text-xs font-black uppercase tracking-widest text-amber-300">MODO TUTOR ATIVO</span>
             </div>
 
-            <div id="chatBox" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50 scroll-smooth">
+            <div id="chatBox" class="flex-1 p-5 overflow-y-auto space-y-6 bg-slate-50 custom-scrollbar scroll-smooth">
                 <div class="flex items-start gap-3 animate-message">
-                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000]"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                    <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium shadow-[2px_2px_0px_#000]">
+                    <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                    <div class="bg-white p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed">
                         Olá! Eu sou o seu assistente inteligente Guardião IA. Como posso te ajudar hoje? 😊
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t-4 border-black space-y-3">
+            <div class="p-4 md:p-5 bg-white border-t-4 border-black space-y-3 shrink-0">
                 
                 <div class="flex flex-wrap gap-2 items-center">
-                    <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-full border border-blue-300 transition-all hover:scale-105 active:scale-95">Me ajude com Matemática 📐</button>
-                    <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-full border border-purple-300 transition-all hover:scale-105 active:scale-95">Curiosidade histórica 📜</button>
-                    <button onclick="usarSugestao('Explique o que é a gravidade')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-full border border-amber-300 transition-all hover:scale-105 active:scale-95">O que é gravidade? 🌍</button>
+                    <button onclick="usarSugestao('Me ajude com Matemática')" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-bold rounded-full border-2 border-blue-300 transition-transform hover:scale-105 active:scale-95">Me ajude com Matemática 📐</button>
+                    <button onclick="usarSugestao('Conte uma curiosidade histórica')" class="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold rounded-full border-2 border-purple-300 transition-transform hover:scale-105 active:scale-95">Curiosidade histórica 📜</button>
+                    <button onclick="usarSugestao('Explique o que é a gravidade')" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-full border-2 border-amber-300 transition-transform hover:scale-105 active:scale-95">O que é gravidade? 🌍</button>
                 </div>
 
-                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-white brutal-border rounded-xl p-2 relative">
-                    <label class="p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center justify-center transition-all duration-300 active:scale-95">
+                <form id="chatForm" onsubmit="enviarMensagem(event)" class="flex items-center gap-2 bg-slate-50 brutal-border rounded-xl p-2 relative focus-within:bg-white transition-colors">
+                    <label class="p-2 hover:bg-slate-200 rounded-lg cursor-pointer flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0">
                         <i data-lucide="paperclip" id="clipIcon" class="w-5 h-5 text-slate-500 transition-transform duration-300"></i>
                         <input type="file" id="fileInput" onchange="atualizarStatusArquivo()" class="hidden" accept="image/*,video/*,audio/*,application/pdf">
                     </label>
 
-                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 px-1 text-sm font-medium text-slate-900 placeholder-slate-600 focus:outline-none" autocomplete="off">
+                    <input type="text" id="messageInput" placeholder="Escreva sua mensagem aqui..." class="flex-1 bg-transparent py-2 pl-3 pr-2 text-sm font-bold text-slate-900 placeholder-slate-500 focus:outline-none" autocomplete="off">
                     
                     <button type="submit" class="w-10 h-10 bg-slate-900 text-white rounded-lg hover:bg-slate-800 brutal-btn flex items-center justify-center shrink-0">
                         <i data-lucide="send" class="w-4 h-4 translate-x-[1px]"></i>
@@ -150,19 +167,19 @@
             const icon = document.getElementById("headerIcon");
 
             if(mode === "tutor") {
-                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border transition-colors hover:bg-amber-100/50";
+                btnTutor.className = "w-full flex items-center gap-3 p-3 bg-amber-100 rounded-xl border-2 border-black text-left brutal-btn";
                 btnStory.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all";
                 title.innerText = "MODO TUTOR ATIVO";
-                title.className = "text-xs font-black uppercase tracking-widest text-amber-400";
+                title.className = "text-xs font-black uppercase tracking-widest text-amber-300";
                 icon.setAttribute("data-lucide", "graduation-cap");
-                icon.className = "w-5 h-5 text-amber-400";
+                icon.className = "w-5 h-5 text-amber-300";
             } else {
-                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-50 rounded-xl border-2 border-black text-left brutal-btn brutal-border transition-colors hover:bg-purple-100/50";
+                btnStory.className = "w-full flex items-center gap-3 p-3 bg-purple-100 rounded-xl border-2 border-black text-left brutal-btn";
                 btnTutor.className = "w-full flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-transparent text-left hover:bg-slate-100 border-dashed hover:border-black transition-all";
                 title.innerText = "MODO HISTÓRIA ATIVO";
-                title.className = "text-xs font-black uppercase tracking-widest text-purple-400";
+                title.className = "text-xs font-black uppercase tracking-widest text-purple-300";
                 icon.setAttribute("data-lucide", "sparkles");
-                icon.className = "w-5 h-5 text-purple-400";
+                icon.className = "w-5 h-5 text-purple-300";
             }
             lucide.createIcons();
         }
@@ -172,7 +189,7 @@
             const preview = document.getElementById("filePreview");
             const icon = document.getElementById("clipIcon");
             if (input.files.length > 0) {
-                preview.innerText = ` 📎 Arquivo anexado com sucesso: ${input.files[0].name}`;
+                preview.innerText = ` 📎 Arquivo anexado: ${input.files[0].name}`;
                 preview.classList.remove("hidden");
                 icon.classList.add("rotate-45", "text-emerald-600");
             } else {
@@ -194,13 +211,12 @@
             const chatBox = document.getElementById("chatBox");
             const msgDiv = document.createElement("div");
             
-            // Centralização vertical do container e alinhamento do balão
-            msgDiv.className = `flex items-center gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
+            // max-w-2xl no balão
+            msgDiv.className = `flex items-start gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-message`;
 
-            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000] shrink-0"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
-            const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000] shrink-0 self-center">ME</div>`;
+            const botIcon = `<div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
+            const userTag = `<div class="text-[10px] font-black uppercase p-2 bg-slate-200 rounded-xl border-2 border-black shadow-[1px_1px_0px_#000] shrink-0 mt-1">ME</div>`;
 
-            // Capitaliza a primeira letra automaticamente se for do usuário
             let textoTratado = text;
             if (role === 'user' && text.length > 0) {
                 textoTratado = text.charAt(0).toUpperCase() + text.slice(1);
@@ -208,7 +224,7 @@
 
             msgDiv.innerHTML = `
                 ${role === 'model' ? botIcon : ''}
-                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 rounded-2xl border-2 border-black max-w-[75%] text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000]">
+                <div class="${role === 'user' ? 'bg-slate-800 text-white' : 'bg-white text-black'} p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium whitespace-pre-wrap shadow-[2px_2px_0px_#000] leading-relaxed">
                     ${textoTratado}
                 </div>
                 ${role === 'user' ? userTag : ''}
@@ -225,7 +241,7 @@
             indicatorDiv.id = "typingIndicator";
             indicatorDiv.className = "flex items-start gap-3 animate-message";
             indicatorDiv.innerHTML = `
-                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
                 <div class="bg-white p-4 rounded-2xl border-2 border-black flex items-center gap-1 shadow-[2px_2px_0px_#000]">
                     <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
                     <span class="w-2 h-2 bg-slate-600 rounded-full typing-dot"></span>
@@ -248,8 +264,8 @@
             const errorDiv = document.createElement("div");
             errorDiv.className = "flex items-start gap-3 animate-message";
             errorDiv.innerHTML = `
-                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                <div class="bg-rose-50 text-rose-700 p-3 rounded-2xl border-2 border-rose-400 max-w-[80%] text-sm font-bold shadow-[2px_2px_0px_#000]">
+                <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                <div class="bg-rose-50 text-rose-800 p-3 md:p-4 rounded-2xl border-2 border-rose-400 max-w-[85%] lg:max-w-2xl text-sm font-bold shadow-[2px_2px_0px_#000] leading-relaxed">
                     ${text}
                 </div>
             `;
@@ -311,8 +327,8 @@
                 if (res.ok) {
                     document.getElementById("chatBox").innerHTML = `
                         <div class="flex items-start gap-3 animate-message">
-                            <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black"><i data-lucide="bot" class="w-4 h-4"></i></div>
-                            <div class="bg-white p-3 rounded-2xl border-2 border-black max-w-[80%] text-sm font-medium shadow-[2px_2px_0px_#000]">Histórico apagado com sucesso! Como posso ajudar?</div>
+                            <div class="p-1.5 bg-slate-900 text-white rounded-lg border border-black shrink-0 mt-1"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                            <div class="bg-white p-3 md:p-4 rounded-2xl border-2 border-black max-w-[85%] lg:max-w-2xl text-sm font-medium shadow-[2px_2px_0px_#000] leading-relaxed">Histórico apagado com sucesso! Como posso ajudar?</div>
                         </div>
                     `;
                     lucide.createIcons();
