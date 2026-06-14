@@ -6,7 +6,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -38,7 +38,8 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT,
                 role TEXT,
-                text TEXT
+                text TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_user_id ON historico(user_id)')
@@ -51,7 +52,7 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Encerrando o servidor...")
 
-app = FastAPI(title="Guardião IA", version="3.0.0", lifespan=lifespan)
+app = FastAPI(title="Guardião IA", version="4.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,24 +74,24 @@ client = genai.Client(api_key=api_key)
 # -----------------------------------------------------------------------------
 def salvar_mensagem_no_banco(user_id: str, role: str, text: str):
     try:
-        with sqlite3.connect(DB_FILE) as conn:
+        with sqlite3.connect(DB_FILE, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("INSERT INTO historico (user_id, role, text) VALUES (?, ?, ?)", (user_id, role, text))
             conn.commit()
     except sqlite3.Error as e:
         logger.error(f"Erro ao salvar no banco: {str(e)}")
 
-def recuperar_historico_do_banco(user_id: str) -> list:
+def recuperar_historico_do_banco(user_id: str, limite: int = 6) -> list:
     try:
-        with sqlite3.connect(DB_FILE) as conn:
+        with sqlite3.connect(DB_FILE, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT role, text FROM (
                     SELECT id, role, text FROM historico 
                     WHERE user_id = ? 
-                    ORDER BY id DESC LIMIT 6
+                    ORDER BY id DESC LIMIT ?
                 ) ORDER BY id ASC
-            """, (user_id,))
+            """, (user_id, limite))
             rows = cursor.fetchall()
         
         contents_list = []
@@ -129,15 +130,13 @@ async def chat_endpoint(
         system_prompt = (
             "Você é um Contador de Histórias mágico e lúdico para crianças.\n"
             "Use marcações Markdown como **negrito** para destacar nomes importantes. "
-            "Use parágrafos bem espaçados e abuse de emojis! Mantenha tudo seguro."
+            "Use parágrafos curtos e emojis! Mantenha tudo seguro."
         )
     else:
         system_prompt = (
             "Você é um Tutor de IA super didático e inteligente.\n"
-            "DIRETRIZ DE RESPOSTA FATO/RESULTADO: Se o usuário pedir um dado direto, uma curiosidade, "
-            "uma informação factual do mundo real ou o resultado de uma busca, ENTREGUE O RESULTADO IMEDIATAMENTE e de forma direta.\n"
-            "DIRETRIZ DE RESOLUÇÃO DE EXERCÍCIOS: Apenas quando o aluno enviar problemas escolares, equações ou tarefas "
-            "para resolver, aja de forma guiada passo a passo usando títulos (###) e listas (* ou 1.) sem dar a resposta de bandeja de início."
+            "DIRETRIZ DE RESPOSTA FATO/RESULTADO: Se o usuário pedir um dado direto, entregue IMEDIATAMENTE.\n"
+            "DIRETRIZ DE RESOLUÇÃO: Para problemas escolares, aja de forma guiada passo a passo usando títulos e listas. Nunca dê apenas a resposta final sem explicar."
         )
 
     config = types.GenerateContentConfig(system_instruction=system_prompt, temperature=0.7)
@@ -153,6 +152,8 @@ async def chat_endpoint(
                 shutil.copyfileobj(file.file, buffer)
             
             logger.info(f"Arquivo salvo localmente: {local_file_path}")
+            
+            # Upload para o Google Gemini
             uploaded_gemini_file = client.files.upload(file=local_file_path)
             user_parts.append(uploaded_gemini_file)
 
@@ -179,22 +180,55 @@ async def chat_endpoint(
         logger.error(f"Erro interno: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno no servidor.")
     finally:
+        # SISTEMA DE LIMPEZA CRÍTICO: Evita estourar o limite de armazenamento do Google
         if local_file_path and os.path.exists(local_file_path):
             try:
                 os.remove(local_file_path)
             except Exception as clean_err:
                 logger.error(f"Falha ao apagar arquivo temporário: {str(clean_err)}")
+                
+        if uploaded_gemini_file:
+            try:
+                client.files.delete(name=uploaded_gemini_file.name)
+                logger.info(f"Arquivo apagado com sucesso dos servidores do Google.")
+            except Exception as g_clean_err:
+                logger.error(f"Falha ao limpar cache do Google Gemini: {str(g_clean_err)}")
 
 @app.post("/api/clear")
 async def clear_chat(request: ClearRequest):
     try:
-        with sqlite3.connect(DB_FILE) as conn:
+        with sqlite3.connect(DB_FILE, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM historico WHERE user_id = ?", (request.user_id,))
             conn.commit()
         return {"status": "success"}
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail="Falha ao limpar o histórico.")
+
+# NOVO SISTEMA: Exportar Histórico de Conversa
+@app.get("/api/export/{user_id}")
+async def export_chat(user_id: str):
+    try:
+        with sqlite3.connect(DB_FILE, timeout=10.0) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT role, text, timestamp FROM historico WHERE user_id = ? ORDER BY id ASC", (user_id,))
+            rows = cursor.fetchall()
+            
+        if not rows:
+            return PlainTextResponse("Nenhum histórico encontrado para este usuário.", status_code=404)
+
+        conteudo_exportacao = f"--- HISTÓRICO DE ESTUDOS: GUARDIÃO IA ---\nID do Aluno: {user_id}\n\n"
+        for role, text, timestamp in rows:
+            autor = "Aluno" if role == "user" else "Tutor IA"
+            conteudo_exportacao += f"[{timestamp}] {autor} disse:\n{text}\n\n{'-'*40}\n\n"
+
+        return PlainTextResponse(
+            conteudo_exportacao, 
+            media_type="text/plain",
+            headers={"Content-Disposition": f"attachment; filename=aula_{user_id}.txt"}
+        )
+    except sqlite3.Error:
+        raise HTTPException(status_code=500, detail="Erro ao gerar arquivo de exportação.")
 
 @app.get("/")
 async def read_index():
